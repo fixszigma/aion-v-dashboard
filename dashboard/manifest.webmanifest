@@ -1,0 +1,20 @@
+{
+  "name": "Aion V 602 · OBD2 Live Dashboard",
+  "short_name": "Aion V OBD",
+  "description": "GAC Aion V 602 OBD2 BLE live telemetry dashboard",
+  "lang": "th",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#0a0e13",
+  "theme_color": "#0a0e13",
+  "icons": [
+    {
+      "src": "icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

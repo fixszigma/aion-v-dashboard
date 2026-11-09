@@ -1,0 +1,504 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#0a0e13" />
+  <meta name="description" content="GAC Aion V 602 OBD2 BLE live telemetry dashboard" />
+  <title>Aion V 602 · OBD Live Dashboard</title>
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="icon" href="icons/icon.svg" type="image/svg+xml" />
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <svg viewBox="0 0 32 32" class="brand-logo" aria-hidden="true"><path d="M17.5 3 7 18h7l-1.5 11L25 13h-7.5z" /></svg>
+      <div>
+        <div class="brand-title">AION V 602</div>
+        <div class="brand-sub">OBD2 Live Telemetry</div>
+      </div>
+    </div>
+
+    <div class="conn">
+      <span class="status-pill" id="statusPill"><span class="dot"></span><span id="statusText">ยังไม่เชื่อมต่อ</span></span>
+      <span class="conn-meta" id="adapterInfo"></span>
+    </div>
+
+    <div class="perf" id="perf" title="เวลาต่อรอบ fast-poll / latency คำสั่งล่าสุด / แรงดันพอร์ต OBD">
+      <span>รอบ <b id="perfCycle">–</b> ms</span>
+      <span>คำสั่ง <b id="perfLatency">–</b> ms</span>
+      <span>OBD <b id="perfVolt">–</b> V</span>
+    </div>
+
+    <div class="actions">
+      <button class="btn primary" id="btnBle">
+        <svg viewBox="0 0 24 24"><path d="m7 7 10 10-5 5V2l5 5L7 17" /></svg>เชื่อมต่อ BLE
+      </button>
+      <button class="btn" id="btnDemo">โหมดสาธิต</button>
+      <button class="btn danger hidden" id="btnDisconnect">ตัดการเชื่อมต่อ</button>
+      <button class="btn rec" id="btnRec" disabled title="บันทึกข้อมูลเป็น CSV"><span class="rec-dot"></span><span id="recText">REC</span></button>
+    </div>
+  </header>
+
+  <nav class="tabs" id="tabs">
+    <button data-tab="overview" class="active">ภาพรวม</button>
+    <button data-tab="battery">แบตเตอรี่</button>
+    <button data-tab="drive">การขับขี่</button>
+    <button data-tab="body">ตัวถัง & ลมยาง</button>
+    <button data-tab="log">ข้อมูลดิบ & บันทึก</button>
+    <button data-tab="settings">ตั้งค่า</button>
+  </nav>
+
+  <div class="banner hidden" id="banner"></div>
+
+  <!-- ============================== DEMO DRIVING SIMULATOR CONTROLLER ============================== -->
+  <div class="demo-controller hidden" id="demoController">
+    <div class="demo-header">
+      <div class="demo-title">
+        <span class="demo-badge">DEMO SIMULATOR</span>
+        <span>จำลองการขับขี่และควบคุมโมดูล OBD2</span>
+      </div>
+      <div class="demo-mode-switch">
+        <button class="btn-demo-mode" id="demoModeAuto" title="ขับตามโปรแกรมวัฏจักรอัตโนมัติ">🤖 ขับอัตโนมัติ (Auto)</button>
+        <button class="btn-demo-mode active" id="demoModeManual" title="ควบคุมคันเร่ง เบรก เกียร์ เลี้ยว ด้วยตนเอง">🎮 ควบคุมเอง (Manual)</button>
+      </div>
+      <button class="link demo-collapse-btn" id="demoToggleCollapse">ย่อ/ขยาย</button>
+    </div>
+
+    <div class="demo-body" id="demoBody">
+      <div class="demo-grid">
+        <!-- Gears -->
+        <div class="demo-box demo-gears-box">
+          <label>ตำแหน่งเกียร์ (VCU 7E3 · 2103)</label>
+          <div class="demo-gears">
+            <button class="btn-gear active" id="demoGearP" data-gear="P">P</button>
+            <button class="btn-gear" id="demoGearR" data-gear="R">R</button>
+            <button class="btn-gear" id="demoGearN" data-gear="N">N</button>
+            <button class="btn-gear" id="demoGearD" data-gear="D">D</button>
+          </div>
+          <div class="demo-gear-hint" id="demoGearHint">เกียร์ P: ล้อล็อก จอดนิ่ง</div>
+        </div>
+
+        <!-- Brake Pedal -->
+        <div class="demo-box demo-pedal-box brake">
+          <div class="demo-pedal-header">
+            <label>แป้นเบรก (IPB 710 · 1101 & IBCM 720 · 1200/2101)</label>
+            <span class="demo-val" id="demoValBrake">0%</span>
+          </div>
+          <button class="btn-pedal btn-brake" id="demoBtnBrake">
+            <span class="pedal-icon">🛑</span>
+            <span class="pedal-text">เหยียบเบรก</span>
+            <small>(กดค้าง / Space / S)</small>
+          </button>
+          <div class="demo-slider-row">
+            <span>ค้างเบรก:</span>
+            <input type="range" id="demoSliderBrake" min="0" max="100" value="0" />
+          </div>
+        </div>
+
+        <!-- Accelerator Pedal -->
+        <div class="demo-box demo-pedal-box gas">
+          <div class="demo-pedal-header">
+            <label>คันเร่ง (VCU 7E3, MCU 7E4, BMS 7E2)</label>
+            <span class="demo-val" id="demoValGas">0%</span>
+          </div>
+          <button class="btn-pedal btn-gas" id="demoBtnGas">
+            <span class="pedal-icon">⚡</span>
+            <span class="pedal-text">เหยียบคันเร่ง</span>
+            <small>(กดค้าง / W / ↑)</small>
+          </button>
+          <div class="demo-slider-row">
+            <span>ค้างคันเร่ง:</span>
+            <input type="range" id="demoSliderGas" min="0" max="100" value="0" />
+          </div>
+        </div>
+
+        <!-- Steering & Turn Signals -->
+        <div class="demo-box demo-steer-box">
+          <div class="demo-steer-header">
+            <label>พวงมาลัย (IPB 710 · 1101)</label>
+            <span class="demo-val" id="demoValSteer">0°</span>
+          </div>
+          <div class="demo-steer-controls">
+            <button class="btn-sm" id="demoSteerLeft">◀ ซ้าย</button>
+            <input type="range" id="demoSliderSteer" min="-450" max="450" value="0" step="5" />
+            <button class="btn-sm" id="demoSteerCenter">ตรง 0°</button>
+            <button class="btn-sm" id="demoSteerRight">ขวา ▶</button>
+          </div>
+
+          <label style="margin-top: 8px;">ไฟเลี้ยว (IBCM 720 · 2100)</label>
+          <div class="demo-turn-row">
+            <button class="btn-turn" id="demoTurnLeft">⬅ ซ้าย</button>
+            <button class="btn-turn active" id="demoTurnOff">⚪ ปิด</button>
+            <button class="btn-turn" id="demoTurnRight">ขวา ➡</button>
+            <button class="btn-turn hazard" id="demoTurnHazard">⚠ ฉุกเฉิน</button>
+          </div>
+        </div>
+
+        <!-- Doors & Body -->
+        <div class="demo-box demo-doors-box">
+          <label>เปิด/ปิดประตู (IBCM 720 · 1201 & Door ECUs 718/719)</label>
+          <div class="demo-doors-grid">
+            <button class="btn-door" id="demoDoorFR">ขวาหน้า (คนขับ)</button>
+            <button class="btn-door" id="demoDoorFL">ซ้ายหน้า</button>
+            <button class="btn-door" id="demoDoorRR">ขวาหลัง</button>
+            <button class="btn-door" id="demoDoorRL">ซ้ายหลัง</button>
+            <button class="btn-door" id="demoDoorBoot">ฝาท้าย</button>
+          </div>
+          <div class="demo-misc-row">
+            <button class="btn-sm" id="demoAcToggle">❄ แอร์ A/C: เปิด</button>
+            <button class="btn-sm" id="demoLockToggle">🔓 ปลดล็อก</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Keyboard shortcuts legend -->
+      <div class="demo-keyboard-hint">
+        <span class="hint-title">⌨️ คีย์ลัดแป้นพิมพ์:</span>
+        <span><code>W</code> หรือ <code>↑</code> คันเร่ง</span>
+        <span><code>S</code> หรือ <code>↓</code> หรือ <code>Space</code> เบรก</span>
+        <span><code>1</code> <code>2</code> <code>3</code> <code>4</code> เกียร์ P/R/N/D</span>
+        <span><code>A</code> / <code>D</code> หมุนพวงมาลัย</span>
+        <span><code>Q</code> / <code>E</code> ไฟเลี้ยว ซ้าย/ขวา</span>
+        <span><code>H</code> ไฟฉุกเฉิน</span>
+      </div>
+    </div>
+  </div>
+
+  <main>
+    <!-- ============================== OVERVIEW ============================== -->
+    <section class="tab-page active" id="tab-overview">
+      <div class="grid overview">
+        <div class="card gauge-card">
+          <div class="card-title">ความเร็ว</div>
+          <div class="gauge-wrap"><svg class="gauge" id="gaugeSpeed" viewBox="0 0 220 190"></svg>
+          <div class="gauge-center">
+            <div class="big" data-v="speed" data-d="0">–</div>
+            <div class="unit">km/h</div>
+          </div></div>
+          <div class="gear-strip" id="gearStrip"><span>P</span><span>R</span><span>N</span><span>D</span></div>
+          <div class="kv-row">
+            <div><label>รอบมอเตอร์</label><b data-v="motor_rpm" data-d="0">–</b><small>rpm</small></div>
+            <div><label>แรงบิด (raw)</label><b data-v="motor_torque" data-d="0" data-sign>–</b></div>
+          </div>
+        </div>
+
+        <div class="card gauge-card">
+          <div class="card-title">กำลังไฟฟ้า</div>
+          <div class="gauge-wrap"><svg class="gauge" id="gaugePower" viewBox="0 0 220 190"></svg>
+          <div class="gauge-center">
+            <div class="big" data-v="power" data-d="1" data-sign>–</div>
+            <div class="unit">kW</div>
+          </div></div>
+          <div class="power-legend"><span class="regen">◀ Regen</span><span class="drain">ใช้ไฟ ▶</span></div>
+          <div class="kv-row">
+            <div><label>แรงดันแพ็ก</label><b data-v="pack_voltage" data-d="1">–</b><small>V</small></div>
+            <div><label>กระแส</label><b data-v="pack_current" data-d="1" data-sign>–</b><small>A</small></div>
+          </div>
+        </div>
+
+        <div class="card soc-card">
+          <div class="card-title">แบตเตอรี่</div>
+          <div class="soc-wrap">
+            <svg class="soc-ring" id="socRing" viewBox="0 0 120 120">
+              <circle cx="60" cy="60" r="50" class="ring-bg" />
+              <circle cx="60" cy="60" r="50" class="ring-fg" id="socRingFg" />
+            </svg>
+            <div class="soc-center">
+              <div class="big" data-v="soc" data-d="1">–</div>
+              <div class="unit">% SoC</div>
+            </div>
+          </div>
+          <div class="kv-grid">
+            <div><label>ระยะทางคงเหลือ (ประมาณ)</label><b data-v="range" data-d="0">–</b><small>km</small></div>
+            <div><label>พลังงานคงเหลือ</label><b data-v="remaining_kwh" data-d="1">–</b><small>kWh</small></div>
+            <div><label>SoH</label><b data-v="soh" data-d="2">–</b><small>%</small></div>
+            <div><label>SoC ภายใน BMS</label><b data-v="soc_bms" data-d="0">–</b><small>%</small></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-title">ทริป <button class="link" id="btnResetTrip2">รีเซ็ต</button></div>
+          <div class="kv-grid">
+            <div><label>ระยะทางทริป</label><b data-v="trip_km" data-d="2">–</b><small>km</small></div>
+            <div><label>พลังงานที่ใช้</label><b data-v="trip_kwh" data-d="2">–</b><small>kWh</small></div>
+            <div><label>อัตราสิ้นเปลือง</label><b data-v="efficiency" data-d="1">–</b><small>kWh/100km</small></div>
+            <div><label>Regen คืนกลับ</label><b data-v="trip_regen" data-d="2">–</b><small>kWh</small></div>
+            <div><label>ระยะสะสม (คำนวณ)</label><b data-v="odo_km" data-d="1">–</b><small>km</small></div>
+            <div><label>เวลาทริป</label><b data-v="trip_time">–</b></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-title">สถานะระบบ</div>
+          <div class="kv-grid">
+            <div><label>เซลล์ ต่ำสุด / สูงสุด</label><b><span data-v="cell_min_mv" data-d="0">–</span> / <span data-v="cell_max_mv" data-d="0">–</span></b><small>mV</small></div>
+            <div><label>Δ เซลล์</label><b data-v="cell_delta" data-d="0" data-warn="15">–</b><small>mV</small></div>
+            <div><label>อุณหภูมิแบต ต่ำ / สูง</label><b><span data-v="bat_temp_min" data-d="0">–</span> / <span data-v="bat_temp_max" data-d="0">–</span></b><small>°C</small></div>
+            <div><label>อุณหภูมิมอเตอร์</label><b data-v="motor_temp_1" data-d="0">–</b><small>°C</small></div>
+            <div><label>DC-DC 12V</label><b data-v="dcdc_output_v" data-d="2">–</b><small>V</small></div>
+            <div><label>ระบบแอร์</label><b data-v="ac_active">–</b></div>
+          </div>
+        </div>
+
+        <div class="card wide">
+          <div class="card-title">ความเร็ว & กำลังไฟ (3 นาทีล่าสุด)
+            <span class="legend"><i class="lg-speed"></i>km/h <i class="lg-power"></i>kW</span>
+          </div>
+          <canvas id="historyChart" class="chart"></canvas>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================== BATTERY ============================== -->
+    <section class="tab-page" id="tab-battery">
+      <div class="grid battery">
+        <div class="card wide">
+          <div class="card-title">แรงดันรายเซลล์ (112 เซลล์ · CATL LFP)
+            <span class="stat-inline">ต่ำสุด <b data-v="cells_min">–</b> · สูงสุด <b data-v="cells_max">–</b> · เฉลี่ย <b data-v="cells_avg">–</b> · Δ <b data-v="cell_delta" data-d="0" data-warn="15">–</b> mV</span>
+          </div>
+          <canvas id="cellChart" class="chart tall"></canvas>
+        </div>
+
+        <div class="card">
+          <div class="card-title">อุณหภูมิแบตเตอรี่ 24 จุด (°C)
+            <span class="stat-inline">สูงสุด #<b data-v="bat_temp_max_index">–</b> · ต่ำสุด #<b data-v="bat_temp_min_index">–</b></span>
+          </div>
+          <div class="heatgrid cols-6" id="tempGrid"></div>
+        </div>
+
+        <div class="card">
+          <div class="card-title">อุณหภูมิแผงวงจร BMU 16 จุด (°C)
+            <span class="stat-inline">ต่ำ <b data-v="bmu_temp_min">–</b> · เฉลี่ย <b data-v="bmu_temp_avg">–</b> · สูง <b data-v="bmu_temp_max">–</b></span>
+          </div>
+          <div class="heatgrid cols-8" id="bmuGrid"></div>
+        </div>
+
+        <div class="card">
+          <div class="card-title">สถานะแพ็ก</div>
+          <div class="kv-grid">
+            <div><label>SoC หน้าจอ</label><b data-v="soc_display" data-d="0">–</b><small>%</small></div>
+            <div><label>SoC ละเอียด (VCU)</label><b data-v="soc_precise" data-d="1">–</b><small>%</small></div>
+            <div><label>SoC เฉลี่ยเซลล์</label><b data-v="soc_cell_avg" data-d="0">–</b><small>%</small></div>
+            <div><label>SoH</label><b data-v="soh" data-d="2">–</b><small>%</small></div>
+            <div><label>แรงดันแพ็ก</label><b data-v="pack_voltage" data-d="1">–</b><small>V</small></div>
+            <div><label>ผลรวมแรงดันเซลล์</label><b data-v="cell_sum_voltage" data-d="1">–</b><small>V</small></div>
+            <div><label>เซลล์สูงสุด #</label><b data-v="cell_max_index">–</b></div>
+            <div><label>เซลล์ต่ำสุด #</label><b data-v="cell_min_index">–</b></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-title">พลังงาน & การชาร์จ</div>
+          <div class="kv-grid">
+            <div><label>ชาร์จเข้าสะสม (CEC)</label><b data-v="energy_charged_total" data-d="1">–</b><small>kWh</small></div>
+            <div><label>จ่ายออกสะสม (CED)</label><b data-v="energy_discharged_total" data-d="1">–</b><small>kWh</small></div>
+            <div><label>ลิมิตจ่ายไฟ</label><b data-v="discharge_power_limit" data-d="0">–</b><small>kW</small></div>
+            <div><label>ลิมิตชาร์จ/Regen</label><b data-v="charge_power_limit" data-d="0">–</b><small>kW</small></div>
+            <div><label>แรงดัน CC2 (สายชาร์จ)</label><b data-v="cc2_voltage" data-d="1">–</b><small>V</small></div>
+            <div><label>ไฟ 12V ที่ BMS</label><b data-v="aux_12v_bms" data-d="1">–</b><small>V</small></div>
+            <div><label>รอบชาร์จเทียบเท่า</label><b data-v="equiv_cycles" data-d="2">–</b></div>
+            <div><label>กำลังไฟขณะนี้</label><b data-v="power" data-d="1" data-sign>–</b><small>kW</small></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================== DRIVE ============================== -->
+    <section class="tab-page" id="tab-drive">
+      <div class="grid drive">
+        <div class="card">
+          <div class="card-title">ความเร็วล้อ (km/h)</div>
+          <div class="wheels">
+            <div class="wheel fl"><label>หน้าซ้าย</label><b data-v="wheel_speed_fl" data-d="1">–</b></div>
+            <div class="wheel fr"><label>หน้าขวา</label><b data-v="wheel_speed_fr" data-d="1">–</b></div>
+            <svg class="wheels-car" viewBox="0 0 80 160"><rect x="10" y="6" width="60" height="148" rx="22" /><rect x="18" y="38" width="44" height="30" rx="6" class="glass" /><rect x="18" y="104" width="44" height="22" rx="6" class="glass" /></svg>
+            <div class="wheel rl"><label>หลังซ้าย</label><b data-v="wheel_speed_rl" data-d="1">–</b></div>
+            <div class="wheel rr"><label>หลังขวา</label><b data-v="wheel_speed_rr" data-d="1">–</b></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-title">แรง G (แนวข้าง / หน้า-หลัง)</div>
+          <canvas id="gChart" class="chart square"></canvas>
+          <div class="kv-row">
+            <div><label>แนวข้าง</label><b data-v="lat_g" data-d="2" data-sign>–</b><small>g</small></div>
+            <div><label>หน้า-หลัง</label><b data-v="lon_g" data-d="2" data-sign>–</b><small>g</small></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-title">พวงมาลัย & เสถียรภาพ</div>
+          <svg class="steer" id="steerWheel" viewBox="-60 -60 120 120">
+            <circle r="50" class="rim" /><circle r="12" class="hub" />
+            <path d="M-48 4 L-12 4 M12 4 L48 4 M0 12 L0 48" class="spoke" />
+            <rect x="-3" y="-56" width="6" height="12" rx="2" class="mark" />
+          </svg>
+          <div class="kv-row">
+            <div><label>มุมพวงมาลัย</label><b data-v="steering_angle" data-d="1" data-sign>–</b><small>°</small></div>
+            <div><label>Yaw rate</label><b data-v="yaw_rate" data-d="1" data-sign>–</b><small>°/s</small></div>
+          </div>
+          <div class="bar-meter"><label>แรงดันเบรก (raw)</label><div class="bar"><i id="brakeBar"></i></div><b data-v="brake_pressure" data-d="0">–</b></div>
+        </div>
+
+        <div class="card">
+          <div class="card-title">มอเตอร์ & อินเวอร์เตอร์</div>
+          <div class="kv-grid">
+            <div><label>รอบมอเตอร์</label><b data-v="motor_rpm" data-d="0">–</b><small>rpm</small></div>
+            <div><label>แรงบิด (raw)</label><b data-v="motor_torque" data-d="0" data-sign>–</b></div>
+            <div><label>DC-Bus อินเวอร์เตอร์</label><b data-v="inverter_dc_bus_v" data-d="0">–</b><small>V</small></div>
+            <div><label>เกียร์</label><b data-v="gear">–</b></div>
+            <div><label>อุณหภูมิมอเตอร์ 1</label><b data-v="motor_temp_1" data-d="0">–</b><small>°C</small></div>
+            <div><label>อุณหภูมิมอเตอร์ 2</label><b data-v="motor_temp_2" data-d="0">–</b><small>°C</small></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-title">ระบบไฟ 12V & ชุดชาร์จ</div>
+          <div class="kv-grid">
+            <div><label>DC-DC ขาออก</label><b data-v="dcdc_output_v" data-d="2">–</b><small>V</small></div>
+            <div><label>DC-DC เป้าหมาย</label><b data-v="dcdc_target_v" data-d="2">–</b><small>V</small></div>
+            <div><label>อุณหภูมิชุดชาร์จ</label><b data-v="charger_temp" data-d="0">–</b><small>°C</small></div>
+            <div><label>ไฟ 12V ที่ BMS</label><b data-v="aux_12v_bms" data-d="1">–</b><small>V</small></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================== BODY ============================== -->
+    <section class="tab-page" id="tab-body">
+      <div class="grid body">
+        <div class="card car-card">
+          <div class="card-title">ตัวรถ (พวงมาลัยขวา · RHD)
+            <span class="lock-badge" id="lockBadge">–</span>
+          </div>
+          <svg class="car" id="carSvg" viewBox="0 0 360 440">
+            <defs>
+              <linearGradient id="bodyGrad" x1="0" x2="1"><stop offset="0" stop-color="#1c2633" /><stop offset=".5" stop-color="#2a3646" /><stop offset="1" stop-color="#1c2633" /></linearGradient>
+            </defs>
+            <!-- tyres -->
+            <rect x="92" y="88" width="20" height="56" rx="6" class="tyre" />
+            <rect x="248" y="88" width="20" height="56" rx="6" class="tyre" />
+            <rect x="92" y="294" width="20" height="56" rx="6" class="tyre" />
+            <rect x="248" y="294" width="20" height="56" rx="6" class="tyre" />
+            <!-- body -->
+            <path class="car-body" d="M140 40 Q180 26 220 40 Q252 50 258 90 L262 360 Q258 404 220 410 Q180 416 140 410 Q102 404 98 360 L102 90 Q108 50 140 40Z" />
+            <path class="glass" d="M122 132 Q180 112 238 132 L232 176 Q180 166 128 176Z" />
+            <path class="glass" d="M128 330 Q180 340 232 330 L238 362 Q180 376 122 362Z" />
+            <rect x="130" y="186" width="100" height="134" rx="12" class="roof" />
+            <!-- doors (closed position lines; open adds class) -->
+            <path id="door_fl" class="door" d="M101 180 L101 250" />
+            <path id="door_fr" class="door" d="M259 180 L259 250" />
+            <path id="door_rl" class="door" d="M101 256 L101 322" />
+            <path id="door_rr" class="door" d="M259 256 L259 322" />
+            <path id="door_boot" class="door" d="M140 409 Q180 415 220 409" />
+            <!-- lamps -->
+            <circle id="turn_fl" cx="116" cy="50" r="7" class="lamp turn" />
+            <circle id="turn_fr" cx="244" cy="50" r="7" class="lamp turn" />
+            <circle id="turn_rl" cx="112" cy="398" r="7" class="lamp turn" />
+            <circle id="turn_rr" cx="248" cy="398" r="7" class="lamp turn" />
+            <rect id="brake_l" x="126" y="398" width="30" height="7" rx="3" class="lamp brake" />
+            <rect id="brake_r" x="204" y="398" width="30" height="7" rx="3" class="lamp brake" />
+            <rect id="reverse_lamp" x="166" y="400" width="28" height="6" rx="3" class="lamp reverse" />
+            <!-- steering wheel marker (RHD) -->
+            <circle cx="205" cy="200" r="11" class="sw" />
+          </svg>
+          <!-- TPMS labels (assumed order: 1=FL, 2=FR, 3=RL, 4=RR) -->
+          <div class="tpms t1"><b data-v="tpms.tire_1_psi" data-d="1">–</b><small>psi</small><span data-v="tpms.tire_1_c" data-d="0">–</span>°C</div>
+          <div class="tpms t2"><b data-v="tpms.tire_2_psi" data-d="1">–</b><small>psi</small><span data-v="tpms.tire_2_c" data-d="0">–</span>°C</div>
+          <div class="tpms t3"><b data-v="tpms.tire_3_psi" data-d="1">–</b><small>psi</small><span data-v="tpms.tire_3_c" data-d="0">–</span>°C</div>
+          <div class="tpms t4"><b data-v="tpms.tire_4_psi" data-d="1">–</b><small>psi</small><span data-v="tpms.tire_4_c" data-d="0">–</span>°C</div>
+        </div>
+
+        <div class="card">
+          <div class="card-title">ประตู & ไฟ</div>
+          <ul class="flags" id="bodyFlags"></ul>
+        </div>
+
+        <div class="card">
+          <div class="card-title">กระจกหน้าต่าง (% เปิด)</div>
+          <div class="windows">
+            <div><label>ซ้ายหน้า</label><div class="bar"><i data-bar="windows_left.front_pct"></i></div><b data-v="windows_left.front_pct" data-d="0">–</b></div>
+            <div><label>ขวาหน้า (คนขับ)</label><div class="bar"><i data-bar="windows_right.front_pct"></i></div><b data-v="windows_right.front_pct" data-d="0">–</b></div>
+            <div><label>ซ้ายหลัง</label><div class="bar"><i data-bar="windows_left.rear_pct"></i></div><b data-v="windows_left.rear_pct" data-d="0">–</b></div>
+            <div><label>ขวาหลัง</label><div class="bar"><i data-bar="windows_right.rear_pct"></i></div><b data-v="windows_right.rear_pct" data-d="0">–</b></div>
+          </div>
+          <p class="note">ลำดับยาง TPMS (1–4) สันนิษฐานเป็น หน้าซ้าย / หน้าขวา / หลังซ้าย / หลังขวา — ตรวจสอบกับรถจริงอีกครั้ง</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================== LOG ============================== -->
+    <section class="tab-page" id="tab-log">
+      <div class="grid log">
+        <div class="card">
+          <div class="card-title">บันทึกข้อมูล (CSV)</div>
+          <p class="note">กด <b>REC</b> ด้านบนเพื่อเริ่ม/หยุดบันทึก ทุกรอบ fast-poll จะเพิ่ม 1 แถว</p>
+          <div class="kv-row">
+            <div><label>สถานะ</label><b id="logState">ไม่ได้บันทึก</b></div>
+            <div><label>จำนวนแถว</label><b id="logRows">0</b></div>
+          </div>
+          <div class="btn-row">
+            <button class="btn" id="btnExportCsv" disabled>ดาวน์โหลด CSV</button>
+            <button class="btn" id="btnExportJson">ส่งออกค่าล่าสุด (JSON)</button>
+          </div>
+        </div>
+
+        <div class="card wide">
+          <div class="card-title">คอนโซล ELM327 <span class="console-tools"><label><input type="checkbox" id="consolePause" /> หยุดชั่วคราว</label><button class="link" id="btnClearConsole">ล้าง</button></span></div>
+          <pre class="console" id="console"></pre>
+        </div>
+
+        <div class="card wide">
+          <div class="card-title">ค่าทั้งหมด (Live)</div>
+          <div class="table-wrap">
+            <table class="values" id="valuesTable">
+              <thead><tr><th>ECU</th><th>DID</th><th>พารามิเตอร์</th><th>ค่า</th><th>หน่วย</th><th>อายุ</th></tr></thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================== SETTINGS ============================== -->
+    <section class="tab-page" id="tab-settings">
+      <div class="grid settings">
+        <div class="card">
+          <div class="card-title">การดึงข้อมูล (Polling)</div>
+          <div class="form">
+            <label>รอบความถี่สูง (ms) <input type="number" id="setFast" min="200" max="5000" step="50" /></label>
+            <label>รอบความถี่ต่ำ (วินาที) <input type="number" id="setSlow" min="5" max="300" step="1" /></label>
+            <fieldset id="setCategories"><legend>กลุ่มข้อมูลที่ดึง</legend></fieldset>
+            <button class="btn" id="btnRefreshSlow">ดึงข้อมูลความถี่ต่ำทันที</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-title">ดองเกิล & รถ</div>
+          <div class="form">
+            <label class="check"><input type="checkbox" id="setCaf0" /> โหมดดองเกิลโคลน (ATCAF0 + ใส่ PCI เอง)</label>
+            <p class="note">ใช้เมื่อดองเกิลตอบ <code>NO DATA</code> ในโหมดปกติ ข้อจำกัด: ข้อมูลหลายเฟรม (แรงดันรายเซลล์, อุณหภูมิรายจุด, TPMS) จะอ่านได้ไม่ครบ มีผลเมื่อเชื่อมต่อครั้งถัดไป</p>
+            <label>ความจุแบตเตอรี่ (kWh) <input type="number" id="setCapacity" min="10" max="150" step="0.1" /></label>
+            <div class="btn-row">
+              <button class="btn" id="btnResetTrip">รีเซ็ตทริป</button>
+              <button class="btn danger" id="btnResetOdo">รีเซ็ตระยะสะสม</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-title">ความปลอดภัย (Read-Only)</div>
+          <p class="note">แอปนี้ส่งเฉพาะ UDS <code>0x22</code> (Read Data By Identifier), <code>0x19</code> และ <code>0x3E</code> เท่านั้น คำสั่งเขียน/สั่งงาน (<code>0x2E</code>, <code>0x31</code>, <code>0x2F</code>) ถูกบล็อกในโค้ด</p>
+          <p class="note">โปรโตคอล: ISO 15765-4 CAN 11-bit 500 kbit/s (<code>ATSP6</code>), Physical addressing, Default session</p>
+          <p class="note">ต้องเปิดผ่าน <code>https://</code> หรือ <code>http://localhost</code> บน Chrome / Edge (Android, Windows, macOS, ChromeOS) — iOS Safari ไม่รองรับ Web Bluetooth</p>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <div class="toast hidden" id="toast"></div>
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>
