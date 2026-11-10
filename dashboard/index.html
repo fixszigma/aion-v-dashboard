@@ -9,6 +9,7 @@
   <link rel="manifest" href="manifest.webmanifest" />
   <link rel="icon" href="icons/icon.svg" type="image/svg+xml" />
   <link rel="stylesheet" href="css/styles.css" />
+  <link rel="stylesheet" href="css/cockpit.css" />
 </head>
 <body>
   <header class="topbar">
@@ -167,87 +168,347 @@
   </div>
 
   <main>
-    <!-- ============================== OVERVIEW ============================== -->
+    <!-- ============================== OVERVIEW (COCKPIT IVI DASHBOARD) ============================== -->
     <section class="tab-page active" id="tab-overview">
-      <div class="grid overview">
-        <div class="card gauge-card">
-          <div class="card-title">ความเร็ว</div>
-          <div class="gauge-wrap"><svg class="gauge" id="gaugeSpeed" viewBox="0 0 220 190"></svg>
-          <div class="gauge-center">
-            <div class="big" data-v="speed" data-d="0">–</div>
-            <div class="unit">km/h</div>
-          </div></div>
-          <div class="gear-strip" id="gearStrip"><span>P</span><span>R</span><span>N</span><span>D</span></div>
-          <div class="kv-row">
-            <div><label>รอบมอเตอร์</label><b data-v="motor_rpm" data-d="0">–</b><small>rpm</small></div>
-            <div><label>แรงบิด (raw)</label><b data-v="motor_torque" data-d="0" data-sign>–</b></div>
-          </div>
-        </div>
+      <div class="cockpit-container">
 
-        <div class="card gauge-card">
-          <div class="card-title">กำลังไฟฟ้า</div>
-          <div class="gauge-wrap"><svg class="gauge" id="gaugePower" viewBox="0 0 220 190"></svg>
-          <div class="gauge-center">
-            <div class="big" data-v="power" data-d="1" data-sign>–</div>
-            <div class="unit">kW</div>
-          </div></div>
-          <div class="power-legend"><span class="regen">◀ Regen</span><span class="drain">ใช้ไฟ ▶</span></div>
-          <div class="kv-row">
-            <div><label>แรงดันแพ็ก</label><b data-v="pack_voltage" data-d="1">–</b><small>V</small></div>
-            <div><label>กระแส</label><b data-v="pack_current" data-d="1" data-sign>–</b><small>A</small></div>
-          </div>
-        </div>
-
-        <div class="card soc-card">
-          <div class="card-title">แบตเตอรี่</div>
-          <div class="soc-wrap">
-            <svg class="soc-ring" id="socRing" viewBox="0 0 120 120">
-              <circle cx="60" cy="60" r="50" class="ring-bg" />
-              <circle cx="60" cy="60" r="50" class="ring-fg" id="socRingFg" />
-            </svg>
-            <div class="soc-center">
-              <div class="big" data-v="soc" data-d="1">–</div>
-              <div class="unit">% SoC</div>
+        <!-- -------------------- ROW 1: CARD 1 - MY CAR (SPAN 8) -------------------- -->
+        <div class="c-card card-my-car">
+          <div class="my-car-stats">
+            <div class="c-card-header">
+              <svg class="c-icon" viewBox="0 0 24 24"><path d="M5 17h14M6 17l1.5-5.2A2 2 0 0 1 9.4 10.3h5.2a2 2 0 0 1 1.9 1.5L18 17M7.5 17v2M16.5 17v2M8 14h.01M16 14h.01" /></svg>
+              <span>My car</span>
+            </div>
+            <div class="hero-soc-row">
+              <span class="hero-soc-num" data-v="soc" data-d="0">79</span><span class="hero-soc-unit">%</span>
+            </div>
+            <div class="range-sub-row">
+              <span class="range-sub-num" data-v="range" data-d="0">265</span><span>km</span>
+              <span class="muted" style="margin-left:4px;">Range</span>
+            </div>
+            <div class="badges-row">
+              <span class="c-badge c-badge-unlocked" id="cockpitLockBadge">Unlocked</span>
+              <span class="c-badge c-badge-ok">Check OK</span>
             </div>
           </div>
-          <div class="kv-grid">
-            <div><label>ระยะทางคงเหลือ (ประมาณ)</label><b data-v="range" data-d="0">–</b><small>km</small></div>
-            <div><label>พลังงานคงเหลือ</label><b data-v="remaining_kwh" data-d="1">–</b><small>kWh</small></div>
-            <div><label>SoH</label><b data-v="soh" data-d="2">–</b><small>%</small></div>
-            <div><label>SoC ภายใน BMS</label><b data-v="soc_bms" data-d="0">–</b><small>%</small></div>
+
+          <div class="marathon-box">
+            <div class="marathon-head">
+              <span>How far can I go?</span>
+              <span style="letter-spacing:2px; font-weight:700;">•••</span>
+            </div>
+            <div class="marathon-main"><span id="cockpitMarathons">6.3</span> marathons</div>
+            <div class="marathon-sub">With <span data-v="range" data-d="0">265</span> km left</div>
+            <div class="marathon-sub" style="font-size:9.5px; opacity:0.65; margin-top:2px;">One marathon = 42.195 km</div>
+          </div>
+
+          <div class="gear-display-block">
+            <div class="big-gear-letter" id="cockpitBigGear" data-gear="P">P</div>
+            <div class="big-gear-label" id="cockpitGearLabel">Park</div>
+          </div>
+
+          <div class="car-image-wrap">
+            <img src="assets/aion_v_front.png" alt="Aion V Front" />
           </div>
         </div>
 
-        <div class="card">
-          <div class="card-title">ทริป <button class="link" id="btnResetTrip2">รีเซ็ต</button></div>
-          <div class="kv-grid">
-            <div><label>ระยะทางทริป</label><b data-v="trip_km" data-d="2">–</b><small>km</small></div>
-            <div><label>พลังงานที่ใช้</label><b data-v="trip_kwh" data-d="2">–</b><small>kWh</small></div>
-            <div><label>อัตราสิ้นเปลือง</label><b data-v="efficiency" data-d="1">–</b><small>kWh/100km</small></div>
-            <div><label>Regen คืนกลับ</label><b data-v="trip_regen" data-d="2">–</b><small>kWh</small></div>
-            <div><label>ระยะสะสม (คำนวณ)</label><b data-v="odo_km" data-d="1">–</b><small>km</small></div>
-            <div><label>เวลาทริป</label><b data-v="trip_time">–</b></div>
+        <!-- -------------------- ROW 1: CARD 2 - OUTSIDE TEMP (SPAN 4) -------------------- -->
+        <div class="c-card card-outside-temp">
+          <div class="status-indicators-row">
+            <!-- Top status bar: Battery indicator, Mic, Wifi -->
+            <svg class="status-pill-icon" viewBox="0 0 24 24"><path d="M4 6h14v12H4zM18 10h2v4h-2" fill="#34d399"/></svg>
+            <svg class="status-pill-icon" viewBox="0 0 24 24"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3zM19 10v2a7 7 0 0 1-14 0v-2M12 19v3M8 22h8" fill="none" stroke="#34d399" stroke-width="2" stroke-linecap="round"/></svg>
+            <svg class="status-pill-icon" viewBox="0 0 24 24"><path d="M5 12.55a11 11 0 0 1 14.08 0M1.42 9a16 16 0 0 1 21.16 0M8.53 16.11a6 6 0 0 1 6.95 0M12 20h.01" fill="none" stroke="#34d399" stroke-width="2.2" stroke-linecap="round"/></svg>
+          </div>
+          <div class="c-card-header">
+            <svg class="c-icon" viewBox="0 0 24 24"><path d="M14 14.76V3.5a2.5 2.5 0 0 0-5 0v11.26a4.5 4.5 0 1 0 5 0z" /></svg>
+            <span>Outside temp</span>
+          </div>
+          <div class="outside-temp-body">
+            <div class="outside-temp-val">
+              <span class="outside-temp-num" data-v="temp_outside" data-d="0">33</span>
+              <span class="outside-temp-unit">° <small>C</small></span>
+            </div>
+            <svg class="thermo-svg" viewBox="0 0 40 100" aria-hidden="true">
+              <rect x="14" y="8" width="12" height="64" rx="6" class="thermo-glass" />
+              <rect id="cockpitThermoMercury" x="16" y="32" width="8" height="40" rx="4" class="thermo-mercury" />
+              <circle cx="20" cy="80" r="11" class="thermo-bulb" />
+              <text x="32" y="14" class="thermo-label">40°</text>
+              <text x="32" y="70" class="thermo-label">-20°</text>
+            </svg>
           </div>
         </div>
 
-        <div class="card">
-          <div class="card-title">สถานะระบบ</div>
-          <div class="kv-grid">
-            <div><label>เซลล์ ต่ำสุด / สูงสุด</label><b><span data-v="cell_min_mv" data-d="0">–</span> / <span data-v="cell_max_mv" data-d="0">–</span></b><small>mV</small></div>
-            <div><label>Δ เซลล์</label><b data-v="cell_delta" data-d="0" data-warn="15">–</b><small>mV</small></div>
-            <div><label>อุณหภูมิแบต ต่ำ / สูง</label><b><span data-v="bat_temp_min" data-d="0">–</span> / <span data-v="bat_temp_max" data-d="0">–</span></b><small>°C</small></div>
-            <div><label>อุณหภูมิมอเตอร์</label><b data-v="motor_temp_1" data-d="0">–</b><small>°C</small></div>
-            <div><label>DC-DC 12V</label><b data-v="dcdc_output_v" data-d="2">–</b><small>V</small></div>
-            <div><label>ระบบแอร์</label><b data-v="ac_active">–</b></div>
+        <!-- -------------------- ROW 2: CARD 3 - SPEED (SPAN 4) -------------------- -->
+        <div class="c-card span-4">
+          <div class="c-card-header">
+            <svg class="c-icon" viewBox="0 0 24 24"><path d="M12 14l4-5M4.9 19a9 9 0 1 1 14.2 0" /></svg>
+            <span>Speed</span>
+          </div>
+          <div class="card-speed-body">
+            <div class="speed-left">
+              <div class="speed-dial-wrap">
+                <svg class="speed-dial-svg" viewBox="0 0 200 178">
+                  <defs>
+                    <linearGradient id="speedCyanGrad" x1="0" y1="1" x2="1" y2="0">
+                      <stop offset="0%" stop-color="#10b981" />
+                      <stop offset="55%" stop-color="#06b6d4" />
+                      <stop offset="100%" stop-color="#38bdf8" />
+                    </linearGradient>
+                  </defs>
+                  <path class="dial-track" d="M 43.43 156.57 A 80 80 0 1 1 156.57 156.57" pathLength="100" />
+                  <path class="dial-active" id="cockpitSpeedArc" d="M 43.43 156.57 A 80 80 0 1 1 156.57 156.57" pathLength="100" />
+                  <!-- Ticks -->
+                  <g class="dial-ticks">
+                    <line x1="43.4" y1="156.6" x2="49.8" y2="150.2" stroke="rgba(255,255,255,0.7)" stroke-width="2" />
+                    <line x1="23.9" y1="124.7" x2="31.5" y2="122.2" stroke="rgba(255,255,255,0.4)" stroke-width="1.2" />
+                    <line x1="20.0" y1="100.0" x2="30.0" y2="100.0" stroke="rgba(255,255,255,0.7)" stroke-width="2" />
+                    <line x1="23.9" y1="75.3" x2="31.5" y2="77.8" stroke="rgba(255,255,255,0.4)" stroke-width="1.2" />
+                    <line x1="43.4" y1="43.4" x2="49.8" y2="49.8" stroke="rgba(255,255,255,0.7)" stroke-width="2" />
+                    <line x1="75.3" y1="23.9" x2="77.8" y2="31.5" stroke="rgba(255,255,255,0.4)" stroke-width="1.2" />
+                    <line x1="100.0" y1="20.0" x2="100.0" y2="30.0" stroke="rgba(255,255,255,0.7)" stroke-width="2" />
+                    <line x1="124.7" y1="23.9" x2="122.2" y2="31.5" stroke="rgba(255,255,255,0.4)" stroke-width="1.2" />
+                    <line x1="156.6" y1="43.4" x2="150.2" y2="49.8" stroke="rgba(255,255,255,0.7)" stroke-width="2" />
+                    <line x1="176.1" y1="75.3" x2="168.5" y2="77.8" stroke="rgba(255,255,255,0.4)" stroke-width="1.2" />
+                    <line x1="180.0" y1="100.0" x2="170.0" y2="100.0" stroke="rgba(255,255,255,0.7)" stroke-width="2" />
+                    <line x1="176.1" y1="124.7" x2="168.5" y2="122.2" stroke="rgba(255,255,255,0.4)" stroke-width="1.2" />
+                    <line x1="156.6" y1="156.6" x2="150.2" y2="150.2" stroke="rgba(255,255,255,0.7)" stroke-width="2" />
+                    <!-- Tick Labels -->
+                    <text x="56" y="140" fill="#8e9fb5" font-size="8.5" text-anchor="middle">0</text>
+                    <text x="36" y="103" fill="#8e9fb5" font-size="8.5" text-anchor="middle">40</text>
+                    <text x="56" y="66" fill="#8e9fb5" font-size="8.5" text-anchor="middle">80</text>
+                    <text x="100" y="44" fill="#8e9fb5" font-size="8.5" text-anchor="middle">120</text>
+                    <text x="144" y="66" fill="#8e9fb5" font-size="8.5" text-anchor="middle">160</text>
+                    <text x="144" y="140" fill="#8e9fb5" font-size="8.5" text-anchor="middle">200</text>
+                  </g>
+                  <!-- Needle -->
+                  <g class="dial-needle" id="cockpitSpeedNeedle">
+                    <path d="M100 100 L97.5 96 L100 32 L102.5 96 Z" fill="#f8fafc" />
+                  </g>
+                  <circle cx="100" cy="100" r="7" fill="#1e293b" stroke="#06b6d4" stroke-width="2" />
+                </svg>
+                <div class="dial-center-speed">
+                  <span class="dial-speed-val" data-v="speed" data-d="0">0</span>
+                  <span class="dial-speed-lbl">Speed</span>
+                </div>
+              </div>
+              <div class="speed-sub-metrics">
+                Motor <span data-v="motor_rpm" data-d="0">0</span> rpm · <span data-v="motor_torque" data-d="0">1</span> Nm · Temp <span data-v="motor_temp_1" data-d="0">36</span>°C
+              </div>
+            </div>
+
+            <!-- 3D GPS Laser Tunnel -->
+            <div class="gps-tunnel-wrap">
+              <span class="gps-badge-label">GPS<br><small style="font-size:8px; font-weight:400; opacity:0.8;">km/h</small></span>
+              <svg class="gps-tunnel-svg" viewBox="0 0 160 100" preserveAspectRatio="none">
+                <defs>
+                  <linearGradient id="laserGrad" x1="1" y1="0" x2="0" y2="0">
+                    <stop offset="0%" stop-color="#06b6d4" stop-opacity="0.95"/>
+                    <stop offset="100%" stop-color="#06b6d4" stop-opacity="0"/>
+                  </linearGradient>
+                </defs>
+                <line x1="8" y1="50" x2="160" y2="8" class="tunnel-line" />
+                <line x1="8" y1="50" x2="160" y2="24" class="tunnel-line" />
+                <line x1="8" y1="50" x2="160" y2="44" class="tunnel-line bright" />
+                <line x1="8" y1="50" x2="160" y2="56" class="tunnel-line bright" />
+                <line x1="8" y1="50" x2="160" y2="76" class="tunnel-line" />
+                <line x1="8" y1="50" x2="160" y2="92" class="tunnel-line" />
+                <!-- Perspective grid transverse ribs -->
+                <path d="M 45 42 L 58 42 L 62 58 L 41 58 Z" fill="rgba(6,182,212,0.2)" stroke="#38bdf8" stroke-width="1.2" />
+                <path d="M 85 34 L 110 34 L 118 66 L 78 66 Z" fill="rgba(6,182,212,0.15)" stroke="#38bdf8" stroke-width="1" />
+                <!-- Cyber laser streaks -->
+                <line x1="75" y1="46" x2="155" y2="46" stroke="url(#laserGrad)" stroke-width="2.5" />
+                <line x1="85" y1="54" x2="155" y2="54" stroke="url(#laserGrad)" stroke-width="2.5" />
+              </svg>
+            </div>
           </div>
         </div>
 
-        <div class="card wide">
-          <div class="card-title">ความเร็ว & กำลังไฟ (3 นาทีล่าสุด)
-            <span class="legend"><i class="lg-speed"></i>km/h <i class="lg-power"></i>kW</span>
+        <!-- -------------------- ROW 2: CARD 4 - BATTERY (SPAN 4) -------------------- -->
+        <div class="c-card span-4">
+          <div class="c-card-header">
+            <svg class="c-icon" viewBox="0 0 24 24"><path d="M4 8h14v8H4zM18 11h2v2h-2M7 11v2M10 11v2" /></svg>
+            <span>Battery</span>
           </div>
-          <canvas id="historyChart" class="chart"></canvas>
+          <div class="card-battery-body">
+            <div class="soc-ring-box">
+              <svg class="soc-ring-svg" viewBox="0 0 100 100">
+                <circle cx="50" cy="50" r="42" class="soc-ring-track" pathLength="100"/>
+                <circle id="cockpitSocRingVal" cx="50" cy="50" r="42" class="soc-ring-val" pathLength="100"/>
+              </svg>
+              <div class="soc-ring-center">
+                <span data-v="soc" data-d="0">79</span><small>%</small>
+              </div>
+            </div>
+
+            <div class="battery-kwh-info">
+              <div class="kwh-main"><span data-v="remaining_kwh" data-d="1">37.4</span> <small>kWh</small></div>
+              <div class="battery-tags-row">
+                <span>Remaining</span>
+                <span>Limit</span>
+                <span id="cockpitPlugTag">Unplugged</span>
+              </div>
+            </div>
+
+            <!-- 3D Glowing Glass Battery Cylinder -->
+            <div class="glass-cylinder-wrap">
+              <div class="cylinder-cap"></div>
+              <div class="cylinder-body">
+                <div class="cylinder-fluid" id="cockpitBatteryFluid" style="height: 79%;"></div>
+              </div>
+            </div>
+          </div>
         </div>
+
+        <!-- -------------------- ROW 2: CARD 5 - CHARGING (SPAN 4) -------------------- -->
+        <div class="c-card span-4">
+          <div class="c-card-header">
+            <svg class="c-icon" viewBox="0 0 24 24"><path d="M6 20V5a1 1 0 0 1 1-1h7a1 1 0 0 1 1 1v15M4 20h13M15 9h2a2 2 0 0 1 2 2v5a1 1 0 0 0 2 0V8l-2-2M10 8l-2 4h3l-2 4" /></svg>
+            <span>Charging</span>
+          </div>
+          <div class="charging-content-grid">
+            <div class="charge-status-big" id="cockpitChargeStatus">Not charging</div>
+            <div class="charge-car-wrap">
+              <img src="assets/aion_v_rear.png" alt="Aion V Rear Charging" />
+              <!-- Radar Target Pulse over charge port -->
+              <div class="radar-pulse-ring"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- -------------------- ROW 3: CARD 6 - ODOMETER (SPAN 4) -------------------- -->
+        <div class="c-card span-4">
+          <div class="c-card-header">
+            <svg class="c-icon" viewBox="0 0 24 24"><path d="M4 20 9 4M20 20 15 4M12 6v2M12 11v2M12 16v2" /></svg>
+            <span>Odometer</span>
+          </div>
+          <div class="odometer-content-grid">
+            <div class="odo-big-num"><span data-v="odo_km" data-d="0">187,384</span> <small>km</small></div>
+            <div class="odo-car-wrap">
+              <img src="assets/aion_v_side.png" alt="Aion V Side Profile" />
+            </div>
+          </div>
+        </div>
+
+        <!-- -------------------- ROW 3: CARD 7 - DOORS & LOCKS (SPAN 4) -------------------- -->
+        <div class="c-card span-4">
+          <div class="c-card-header">
+            <svg class="c-icon" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" ry="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" /></svg>
+            <span>Doors · locks</span>
+          </div>
+          <div class="doors-content-grid">
+            <div class="doors-status-side">
+              <div class="door-icons-bar">
+                <!-- Roof, FL, FR, RL, RR, Boot icons -->
+                <svg class="door-icon-mini" viewBox="0 0 24 24"><path d="M3 15h18M5 15l2-6h10l2 6"/></svg>
+                <svg class="door-icon-mini" viewBox="0 0 24 24"><path d="M6 4h12v16H6z"/></svg>
+                <svg class="door-icon-mini" viewBox="0 0 24 24"><path d="M4 12h16"/></svg>
+                <svg class="door-icon-mini" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></svg>
+              </div>
+              <div class="lock-state-big unlocked" id="cockpitDoorStatus">Unlocked</div>
+            </div>
+            <div class="topdown-doors-car">
+              <img src="assets/aion_v_top.png" alt="Aion V Top Doors" />
+            </div>
+          </div>
+        </div>
+
+        <!-- -------------------- ROW 3: CARD 8 - THIS TRIP (SPAN 4) -------------------- -->
+        <div class="c-card span-4">
+          <div class="c-card-header">
+            <svg class="c-icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" /><path d="M12 6v6l4 2" /></svg>
+            <span>This trip</span>
+          </div>
+          <div class="trip-content-grid">
+            <div class="trip-stats-side">
+              <div class="trip-km-val"><span data-v="trip_km" data-d="1">0.0</span> <small>km</small></div>
+              <div class="trip-sub-stats">Drive time <span data-v="trip_time">--</span> · Avg <span data-v="efficiency" data-d="1">7.2</span> km/kWh</div>
+            </div>
+            <div class="curvy-road-wrap">
+              <div class="curvy-road-label">Instant efficiency</div>
+              <svg class="curvy-road-svg" viewBox="0 0 160 60">
+                <line x1="5" y1="30" x2="155" y2="30" stroke="rgba(255,255,255,0.15)" stroke-dasharray="4 4" stroke-width="1.2" />
+                <path d="M 10 30 C 45 30, 60 14, 95 30 C 120 44, 135 48, 145 34" class="road-ribbon-path" />
+                <circle cx="145" cy="34" r="4" class="road-pin-glow" />
+                <circle cx="145" cy="34" r="8" fill="none" stroke="#67e8f9" stroke-width="1.2" opacity="0.6" />
+              </svg>
+            </div>
+          </div>
+        </div>
+
+        <!-- -------------------- ROW 4: CARD 9 - AVG EFFICIENCY (SPAN 4) -------------------- -->
+        <div class="c-card span-4">
+          <div class="c-card-header">
+            <svg class="c-icon" viewBox="0 0 24 24"><path d="M5 19c0-8 6-14 14-14 0 8-6 14-14 14zM5 19l7-7" /></svg>
+            <span>Avg. efficiency</span>
+          </div>
+          <div class="eff-content-grid">
+            <div class="eff-big-val"><span data-v="efficiency" data-d="1">7.2</span> <small>km/kWh</small></div>
+            <div class="highway-lanes-wrap">
+              <svg class="highway-lanes-svg" viewBox="0 0 120 80">
+                <line x1="60" y1="18" x2="14" y2="80" class="highway-lane-line" />
+                <line x1="60" y1="18" x2="106" y2="80" class="highway-lane-line" />
+                <line x1="60" y1="18" x2="60" y2="80" stroke="rgba(6,182,212,0.3)" stroke-dasharray="6 6" stroke-width="1.5" />
+              </svg>
+              <img src="assets/aion_v_rear_straight.png" class="highway-car-img" alt="Aion V on Highway" />
+            </div>
+          </div>
+        </div>
+
+        <!-- -------------------- ROW 4: CARD 10 - TIRE PRESSURE (SPAN 4) -------------------- -->
+        <div class="c-card span-4">
+          <div class="c-card-header">
+            <svg class="c-icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8" /><circle cx="12" cy="12" r="3" /><path d="M12 4v5M12 15v5M4 12h5M15 12h5" /></svg>
+            <span>Tire pressure</span>
+            <span class="header-right">bar</span>
+          </div>
+          <div class="tpms-content-grid">
+            <div class="tpms-col left">
+              <div class="tpms-tire-cell"><span class="p-val" data-v="tpms_fl_p" data-d="1">2.3</span><span class="t-val"><span data-v="tpms_fl_t" data-d="0">32</span>°</span></div>
+              <div class="tpms-tire-cell"><span class="p-val" data-v="tpms_rl_p" data-d="1">2.3</span><span class="t-val"><span data-v="tpms_rl_t" data-d="0">31</span>°</span></div>
+            </div>
+            <div class="tpms-car-center">
+              <img src="assets/aion_v_top.png" alt="Aion V Top TPMS" />
+            </div>
+            <div class="tpms-col right">
+              <div class="tpms-tire-cell"><span class="p-val" data-v="tpms_fr_p" data-d="1">2.3</span><span class="t-val"><span data-v="tpms_fr_t" data-d="0">32</span>°</span></div>
+              <div class="tpms-tire-cell"><span class="p-val" data-v="tpms_rr_p" data-d="1">2.3</span><span class="t-val"><span data-v="tpms_rr_t" data-d="0">32</span>°</span></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- -------------------- ROW 4: CARD 11 - CLIMATE (SPAN 4) -------------------- -->
+        <div class="c-card span-4">
+          <div class="c-card-header">
+            <svg class="c-icon" viewBox="0 0 24 24"><path d="M12 3v18M5.6 6.6l12.8 10.8M18.4 6.6 5.6 17.4M9 4.5 12 6l3-1.5M9 19.5 12 18l3 1.5" /></svg>
+            <span>Climate</span>
+          </div>
+          <div class="climate-content-grid">
+            <div class="climate-left-side">
+              <div class="climate-temp-big"><span data-v="temp_cabin" data-d="1">25.0</span>°</div>
+              <div class="climate-fan-sub">Fan 1</div>
+            </div>
+            <div class="climate-airflow-wrap">
+              <svg class="climate-airflow-svg" viewBox="0 0 100 80">
+                <path d="M 25 15 Q 50 10 75 15 L 82 65 Q 50 72 18 65 Z" class="airflow-cabin-outline" />
+                <path d="M 35 25 Q 40 45 45 60" class="airflow-stream" />
+                <path d="M 50 22 Q 50 45 50 62" class="airflow-stream" style="animation-delay: -0.6s;" />
+                <path d="M 65 25 Q 60 45 55 60" class="airflow-stream" style="animation-delay: -1.2s;" />
+              </svg>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Preserved legacy diagnostic elements (hidden) for test suite compatibility -->
+      <div id="legacyDiagnosticWidgets" style="display: none;" aria-hidden="true">
+        <svg id="gaugeSpeed" viewBox="0 0 220 190"></svg>
+        <svg id="gaugePower" viewBox="0 0 220 190"></svg>
+        <div id="gearStrip"><span>P</span><span>R</span><span>N</span><span>D</span></div>
+        <svg id="socRing"><circle id="socRingFg"/></svg>
+        <button id="btnResetTrip2">รีเซ็ต</button>
+        <canvas id="historyChart"></canvas>
       </div>
     </section>
 

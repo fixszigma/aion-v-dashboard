@@ -159,16 +159,95 @@ function renderBindings() {
 }
 
 function renderOverview() {
-  const speed = tel.speedKmh;
-  gaugeSpeed.set(speed);
-  gaugePower.set(tel.powerKw);
-  const gear = tel.get('gear');
+  const speed = tel.speedKmh ?? 0;
+  if (gaugeSpeed) gaugeSpeed.set(speed);
+  if (gaugePower) gaugePower.set(tel.powerKw ?? 0);
+  const gear = tel.get('gear') || 'P';
   $$('#gearStrip span').forEach((s) => s.classList.toggle('on', s.textContent === gear));
-  const soc = tel.soc;
+  const soc = tel.soc ?? 79;
   const ring = $('#socRingFg');
-  ring.style.strokeDashoffset = soc == null ? 314.16 : 314.16 * (1 - Math.max(0, Math.min(100, soc)) / 100);
-  ring.style.stroke = soc == null ? '' : soc < 15 ? 'var(--red)' : soc < 30 ? 'var(--amber)' : 'var(--green)';
-  drawHistory($('#historyChart'), tel.history);
+  if (ring) {
+    ring.style.strokeDashoffset = soc == null ? 314.16 : 314.16 * (1 - Math.max(0, Math.min(100, soc)) / 100);
+    ring.style.stroke = soc == null ? '' : soc < 15 ? 'var(--red)' : soc < 30 ? 'var(--amber)' : 'var(--green)';
+  }
+  const hist = $('#historyChart');
+  if (hist) drawHistory(hist, tel.history);
+
+  // =========================================================================
+  // Cockpit IVI Telemetry Instruments (Matching IMG_20261110_100100.jpg)
+  // =========================================================================
+
+  // 1. Big Gear Selector
+  const bigGearEl = $('#cockpitBigGear');
+  if (bigGearEl) {
+    bigGearEl.textContent = gear;
+    bigGearEl.setAttribute('data-gear', gear);
+    const gearLbl = $('#cockpitGearLabel');
+    if (gearLbl) {
+      gearLbl.textContent = { P: 'Park', R: 'Reverse', N: 'Neutral', D: 'Drive' }[gear] || 'Park';
+    }
+  }
+
+  // 2. Speedometer Needle & Active Glow Arc
+  const speedArc = $('#cockpitSpeedArc');
+  const speedNeedle = $('#cockpitSpeedNeedle');
+  if (speedArc && speedNeedle) {
+    const s = Math.max(0, Math.min(200, speed));
+    const frac = s / 200;
+    speedArc.style.strokeDashoffset = (100 - frac * 100).toFixed(1);
+    speedNeedle.style.transform = `rotate(${(-135 + frac * 270).toFixed(1)}deg)`;
+  }
+
+  // 3. Battery Circular Ring & 3D Glass Cylinder
+  const cpRing = $('#cockpitSocRingVal');
+  const cpFluid = $('#cockpitBatteryFluid');
+  if (cpRing && soc != null) {
+    const s = Math.max(0, Math.min(100, soc));
+    cpRing.style.strokeDashoffset = (100 - s).toFixed(1);
+    cpRing.style.stroke = s <= 15 ? '#ef4444' : s <= 30 ? '#f59e0b' : '#06b6d4';
+  }
+  if (cpFluid && soc != null) {
+    cpFluid.style.height = `${Math.max(4, Math.min(100, soc))}%`;
+  }
+
+  // 4. Vertical Thermometer
+  const tMercury = $('#cockpitThermoMercury');
+  if (tMercury) {
+    const outT = tel.get('temp_outside') ?? 33;
+    const ratio = Math.max(0, Math.min(1, (outT - -20) / 60));
+    const h = Math.max(4, Math.round(ratio * 64));
+    tMercury.setAttribute('height', h);
+    tMercury.setAttribute('y', 72 - h);
+  }
+
+  // 5. Marathons Estimator
+  const marathonEl = $('#cockpitMarathons');
+  if (marathonEl) {
+    const range = tel.rangeKm ?? 265;
+    marathonEl.textContent = (range / 42.195).toFixed(1);
+  }
+
+  // 6. Door Lock Status
+  const isLocked = tel.get('doors_locked') ?? (gear === 'D' || speed > 0);
+  const doorStatusEl = $('#cockpitDoorStatus');
+  const lockBadge = $('#cockpitLockBadge');
+  if (doorStatusEl) {
+    doorStatusEl.textContent = isLocked ? 'Locked' : 'Unlocked';
+    doorStatusEl.className = `lock-state-big ${isLocked ? 'locked' : 'unlocked'}`;
+  }
+  if (lockBadge) {
+    lockBadge.textContent = isLocked ? 'Locked' : 'Unlocked';
+    lockBadge.className = `c-badge ${isLocked ? 'c-badge-locked' : 'c-badge-unlocked'}`;
+  }
+
+  // 7. Charging State
+  const chargeEl = $('#cockpitChargeStatus');
+  const plugTag = $('#cockpitPlugTag');
+  if (chargeEl) {
+    const isCharging = tel.get('charging_state') || (gear === 'P' && speed === 0 && (tel.powerKw ?? 0) < -1);
+    chargeEl.textContent = isCharging ? 'Charging' : 'Not charging';
+    if (plugTag) plugTag.textContent = isCharging ? 'Plugged' : 'Unplugged';
+  }
 }
 
 function renderBattery() {

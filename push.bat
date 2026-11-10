@@ -6,6 +6,8 @@ echo  GAC Aion V Dashboard - Pushing to GitHub
 echo  Repository: https://github.com/fixszigma/aion-v-dashboard.git
 echo ================================================================
 echo.
+git add -A
+git commit -m "feat: upgrade to widescreen Cockpit IVI dashboard with 3D vehicle assets"
 git push -u origin main
 echo.
 if %errorlevel% equ 0 (

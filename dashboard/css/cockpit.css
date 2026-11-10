@@ -1,0 +1,1001 @@
+/* =============================================================================
+   AION V 602 · Cockpit Telemetry Dashboard (Matching IMG_20261110_100100.jpg)
+   Glassmorphic 11-card In-Vehicle Infotainment (IVI) Layout
+   ============================================================================= */
+
+:root {
+  --cockpit-bg: #070b14;
+  --cockpit-card-bg: rgba(14, 20, 34, 0.75);
+  --cockpit-card-border: rgba(255, 255, 255, 0.08);
+  --cockpit-card-hover: rgba(255, 255, 255, 0.14);
+  --cockpit-accent: #06b6d4;
+  --cockpit-accent-glow: rgba(6, 182, 212, 0.55);
+  --cockpit-emerald: #10b981;
+  --cockpit-amber: #f59e0b;
+  --cockpit-rose: #ef4444;
+  --cockpit-text: #f1f5f9;
+  --cockpit-muted: #8e9fb5;
+  --cockpit-radius: 18px;
+}
+
+/* -----------------------------------------------------------------------------
+   Cockpit Grid Container
+   ----------------------------------------------------------------------------- */
+.cockpit-container {
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  gap: 12px;
+  width: 100%;
+  margin: 0 auto;
+}
+
+@media (min-width: 1400px) {
+  .cockpit-container {
+    gap: 14px;
+  }
+}
+
+/* -----------------------------------------------------------------------------
+   Cockpit Glass Card
+   ----------------------------------------------------------------------------- */
+.c-card {
+  position: relative;
+  background: var(--cockpit-card-bg);
+  border: 1px solid var(--cockpit-card-border);
+  border-radius: var(--cockpit-radius);
+  backdrop-filter: blur(14px) saturate(130%);
+  -webkit-backdrop-filter: blur(14px) saturate(130%);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  padding: 14px 18px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  transition: border-color 0.25s, box-shadow 0.25s;
+}
+
+.c-card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 40%;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.035), transparent);
+  pointer-events: none;
+}
+
+.c-card-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--cockpit-muted);
+  letter-spacing: 0.03em;
+  margin-bottom: 8px;
+  flex: none;
+}
+
+.c-card-header .c-icon {
+  width: 16px;
+  height: 16px;
+  fill: none;
+  stroke: var(--cockpit-muted);
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.c-card-header .header-right {
+  margin-left: auto;
+  font-weight: 400;
+  font-size: 12px;
+  color: var(--cockpit-muted);
+}
+
+/* -----------------------------------------------------------------------------
+   Row 1: Card 1 - My Car Wide Banner (span 8)
+   ----------------------------------------------------------------------------- */
+.card-my-car {
+  grid-column: span 8;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1.1fr) auto minmax(0, 1.25fr);
+  align-items: center;
+  gap: 16px;
+}
+
+.my-car-stats {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.hero-soc-row {
+  display: flex;
+  align-items: baseline;
+  line-height: 1;
+}
+
+.hero-soc-num {
+  font-size: clamp(38px, 3.2vw, 54px);
+  font-weight: 300;
+  letter-spacing: -0.02em;
+  color: var(--cockpit-text);
+}
+
+.hero-soc-unit {
+  font-size: 18px;
+  color: var(--cockpit-muted);
+  margin-left: 4px;
+}
+
+.range-sub-row {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+  font-size: 14px;
+}
+
+.range-sub-num {
+  font-size: 17px;
+  font-weight: 500;
+  color: var(--cockpit-text);
+}
+
+.badges-row {
+  display: flex;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.c-badge {
+  padding: 2px 8px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.c-badge-unlocked {
+  background: rgba(239, 68, 68, 0.22);
+  color: #fca5a5;
+  border: 1px solid rgba(239, 68, 68, 0.4);
+}
+
+.c-badge-locked {
+  background: rgba(16, 185, 129, 0.22);
+  color: #6ee7b7;
+  border: 1px solid rgba(16, 185, 129, 0.4);
+}
+
+.c-badge-ok {
+  background: rgba(6, 182, 212, 0.18);
+  color: #67e8f9;
+  border: 1px solid rgba(6, 182, 212, 0.35);
+}
+
+/* Marathon Box */
+.marathon-box {
+  background: rgba(255, 255, 255, 0.045);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 12px;
+  padding: 10px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.marathon-box .marathon-head {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  color: var(--cockpit-muted);
+}
+
+.marathon-main {
+  font-size: 20px;
+  font-weight: 400;
+  color: var(--cockpit-text);
+}
+
+.marathon-sub {
+  font-size: 11px;
+  color: var(--cockpit-muted);
+}
+
+/* Big Gear Display */
+.gear-display-block {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  min-width: 55px;
+}
+
+.big-gear-letter {
+  font-size: clamp(52px, 4vw, 68px);
+  font-weight: 800;
+  line-height: 0.95;
+  color: var(--cockpit-accent);
+  text-shadow: 0 0 20px var(--cockpit-accent-glow), 0 0 40px rgba(6, 182, 212, 0.3);
+  transition: all 0.3s;
+}
+
+.big-gear-letter[data-gear="R"] {
+  color: var(--cockpit-amber);
+  text-shadow: 0 0 20px rgba(245, 158, 11, 0.6);
+}
+
+.big-gear-letter[data-gear="D"] {
+  color: var(--cockpit-emerald);
+  text-shadow: 0 0 20px rgba(16, 185, 129, 0.65);
+}
+
+.big-gear-letter[data-gear="N"] {
+  color: var(--cockpit-muted);
+  text-shadow: none;
+}
+
+.big-gear-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--cockpit-accent);
+  letter-spacing: 0.06em;
+}
+
+/* Car Images */
+.car-image-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+}
+
+.car-image-wrap img {
+  max-width: 100%;
+  max-height: 120px;
+  object-fit: contain;
+  filter: drop-shadow(0 10px 18px rgba(0, 0, 0, 0.6));
+}
+
+/* -----------------------------------------------------------------------------
+   Row 1: Card 2 - Outside Temp (span 4)
+   ----------------------------------------------------------------------------- */
+.card-outside-temp {
+  grid-column: span 4;
+}
+
+.status-indicators-row {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.status-pill-icon {
+  width: 14px;
+  height: 14px;
+  fill: #34d399;
+}
+
+.outside-temp-body {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex: 1;
+  padding: 0 6px;
+}
+
+.outside-temp-val {
+  display: flex;
+  align-items: baseline;
+  line-height: 1;
+}
+
+.outside-temp-num {
+  font-size: clamp(40px, 3.4vw, 56px);
+  font-weight: 300;
+  letter-spacing: -0.02em;
+}
+
+.outside-temp-unit {
+  font-size: 20px;
+  color: var(--cockpit-muted);
+  margin-left: 6px;
+}
+
+.thermo-svg {
+  width: 44px;
+  height: 100px;
+  overflow: visible;
+}
+
+.thermo-glass {
+  fill: rgba(255, 255, 255, 0.08);
+  stroke: rgba(255, 255, 255, 0.18);
+  stroke-width: 1.5;
+}
+
+.thermo-mercury {
+  fill: #ef4444;
+  filter: drop-shadow(0 0 6px rgba(239, 68, 68, 0.7));
+  transition: height 0.6s, y 0.6s;
+}
+
+.thermo-bulb {
+  fill: #ef4444;
+  filter: drop-shadow(0 0 10px rgba(239, 68, 68, 0.8));
+}
+
+.thermo-label {
+  fill: var(--cockpit-muted);
+  font-size: 9px;
+  font-weight: 500;
+}
+
+/* -----------------------------------------------------------------------------
+   Row 2, 3, 4: Generic 4-span layout
+   ----------------------------------------------------------------------------- */
+.span-4 {
+  grid-column: span 4;
+}
+
+/* Card 3: Speedometer + 3D GPS Tunnel */
+.card-speed-body {
+  display: grid;
+  grid-template-columns: 1.15fr 1fr;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+}
+
+.speed-left {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+}
+
+.speed-dial-wrap {
+  position: relative;
+  width: 140px;
+  height: 110px;
+}
+
+.speed-dial-svg {
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.dial-track {
+  fill: none;
+  stroke: rgba(255, 255, 255, 0.08);
+  stroke-width: 9;
+  stroke-linecap: round;
+}
+
+.dial-active {
+  fill: none;
+  stroke: url(#speedCyanGrad);
+  stroke-width: 9;
+  stroke-linecap: round;
+  stroke-dasharray: 100 100;
+  stroke-dashoffset: 100;
+  filter: drop-shadow(0 0 6px #06b6d4);
+  transition: stroke-dashoffset 0.35s ease-out;
+}
+
+.dial-needle {
+  transform-origin: 100px 100px;
+  transform: rotate(-135deg);
+  transition: transform 0.35s cubic-bezier(0.2, 0.8, 0.3, 1);
+  filter: drop-shadow(0 0 4px #06b6d4);
+}
+
+.dial-center-speed {
+  position: absolute;
+  inset: 0;
+  top: 35px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  line-height: 1;
+}
+
+.dial-speed-val {
+  font-size: 34px;
+  font-weight: 300;
+  color: var(--cockpit-text);
+}
+
+.dial-speed-lbl {
+  font-size: 11px;
+  color: var(--cockpit-accent);
+  font-weight: 600;
+  margin-top: 2px;
+}
+
+.speed-sub-metrics {
+  font-size: 11px;
+  color: var(--cockpit-muted);
+  margin-top: 4px;
+  white-space: nowrap;
+}
+
+/* 3D GPS Perspective Tunnel */
+.gps-tunnel-wrap {
+  position: relative;
+  height: 100%;
+  min-height: 95px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border-radius: 10px;
+  background: radial-gradient(circle at 10% 50%, rgba(6, 182, 212, 0.15), transparent 70%);
+}
+
+.gps-tunnel-svg {
+  width: 100%;
+  height: 100%;
+}
+
+.tunnel-line {
+  stroke: rgba(6, 182, 212, 0.4);
+  stroke-width: 1.2;
+}
+
+.tunnel-line.bright {
+  stroke: rgba(6, 182, 212, 0.85);
+  stroke-width: 1.8;
+  filter: drop-shadow(0 0 4px #06b6d4);
+}
+
+.gps-badge-label {
+  position: absolute;
+  top: 6px;
+  right: 12px;
+  font-size: 10px;
+  font-weight: 700;
+  color: #38bdf8;
+  letter-spacing: 0.08em;
+}
+
+/* Card 4: Battery & 3D Glowing Glass Cylinder */
+.card-battery-body {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+}
+
+.soc-ring-box {
+  position: relative;
+  width: 85px;
+  height: 85px;
+}
+
+.soc-ring-svg {
+  width: 100%;
+  height: 100%;
+  transform: rotate(-90deg);
+}
+
+.soc-ring-track {
+  fill: none;
+  stroke: rgba(255, 255, 255, 0.07);
+  stroke-width: 8;
+}
+
+.soc-ring-val {
+  fill: none;
+  stroke: var(--cockpit-accent);
+  stroke-width: 8;
+  stroke-linecap: round;
+  stroke-dasharray: 100 100;
+  stroke-dashoffset: 21;
+  filter: drop-shadow(0 0 6px #06b6d4);
+  transition: stroke-dashoffset 0.6s, stroke 0.4s;
+}
+
+.soc-ring-center {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  line-height: 85px;
+  font-size: 24px;
+  font-weight: 300;
+}
+
+.soc-ring-center small {
+  font-size: 13px;
+  color: var(--cockpit-muted);
+  margin-left: 2px;
+}
+
+.battery-kwh-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.kwh-main {
+  font-size: 28px;
+  font-weight: 300;
+  line-height: 1;
+}
+
+.kwh-main small {
+  font-size: 14px;
+  color: var(--cockpit-muted);
+}
+
+.battery-tags-row {
+  display: flex;
+  gap: 6px;
+  font-size: 10px;
+  color: var(--cockpit-muted);
+  flex-wrap: wrap;
+}
+
+.battery-tags-row span {
+  background: rgba(255, 255, 255, 0.05);
+  padding: 1px 6px;
+  border-radius: 4px;
+}
+
+/* 3D Glowing Glass Battery Cylinder */
+.glass-cylinder-wrap {
+  width: 38px;
+  height: 90px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.cylinder-cap {
+  width: 18px;
+  height: 5px;
+  background: linear-gradient(90deg, #94a3b8, #cbd5e1, #64748b);
+  border-radius: 3px 3px 0 0;
+}
+
+.cylinder-body {
+  position: relative;
+  width: 36px;
+  flex: 1;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-radius: 8px;
+  background: rgba(15, 23, 42, 0.5);
+  box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.5), 0 0 14px rgba(6, 182, 212, 0.25);
+  overflow: hidden;
+  padding: 2px;
+}
+
+.cylinder-fluid {
+  position: absolute;
+  left: 2px;
+  right: 2px;
+  bottom: 2px;
+  height: 79%;
+  background: linear-gradient(180deg, #a7f3d0 0%, #34d399 20%, #06b6d4 70%, #0284c7 100%);
+  border-radius: 5px;
+  box-shadow: 0 0 16px rgba(6, 182, 212, 0.8);
+  transition: height 0.6s cubic-bezier(0.2, 0.8, 0.3, 1);
+}
+
+.cylinder-fluid::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.7);
+  border-radius: 50%;
+  filter: blur(0.5px);
+}
+
+/* Card 5: Charging */
+.charging-content-grid {
+  display: grid;
+  grid-template-columns: 1fr 1.25fr;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+}
+
+.charge-status-big {
+  font-size: 26px;
+  font-weight: 300;
+  color: var(--cockpit-text);
+  line-height: 1.1;
+}
+
+.charge-car-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.charge-car-wrap img {
+  max-width: 100%;
+  max-height: 100px;
+  object-fit: contain;
+}
+
+/* Concentric Radar Pulse Ring over Charging Port */
+.radar-pulse-ring {
+  position: absolute;
+  top: 38%;
+  right: 14%;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 2px solid #06b6d4;
+  box-shadow: 0 0 12px #06b6d4;
+  animation: radar-ping 2s cubic-bezier(0, 0, 0.2, 1) infinite;
+  pointer-events: none;
+}
+
+@keyframes radar-ping {
+  0% { transform: scale(0.6); opacity: 1; }
+  100% { transform: scale(1.8); opacity: 0; }
+}
+
+/* Card 6: Odometer */
+.odometer-content-grid {
+  display: grid;
+  grid-template-columns: 1fr 1.2fr;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+}
+
+.odo-big-num {
+  font-size: clamp(26px, 2.2vw, 38px);
+  font-weight: 300;
+  letter-spacing: -0.02em;
+}
+
+.odo-big-num small {
+  font-size: 14px;
+  color: var(--cockpit-muted);
+}
+
+.odo-car-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.odo-car-wrap img {
+  max-width: 100%;
+  max-height: 95px;
+  object-fit: contain;
+  filter: drop-shadow(0 8px 16px rgba(0, 0, 0, 0.5));
+}
+
+/* Card 7: Doors & Locks */
+.doors-content-grid {
+  display: grid;
+  grid-template-columns: 1.1fr 1fr;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+}
+
+.doors-status-side {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.door-icons-bar {
+  display: flex;
+  gap: 8px;
+}
+
+.door-icon-mini {
+  width: 16px;
+  height: 16px;
+  fill: none;
+  stroke: var(--cockpit-muted);
+  stroke-width: 1.6;
+}
+
+.lock-state-big {
+  font-size: 32px;
+  font-weight: 300;
+  line-height: 1;
+}
+
+.lock-state-big.unlocked {
+  color: #f87171;
+  text-shadow: 0 0 18px rgba(239, 68, 68, 0.45);
+}
+
+.lock-state-big.locked {
+  color: #34d399;
+  text-shadow: 0 0 18px rgba(16, 185, 129, 0.45);
+}
+
+.topdown-doors-car {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.topdown-doors-car img {
+  max-width: 100%;
+  max-height: 105px;
+  object-fit: contain;
+}
+
+/* Card 8: This Trip & Curving Neon Highway */
+.trip-content-grid {
+  display: grid;
+  grid-template-columns: 1fr 1.25fr;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+}
+
+.trip-stats-side {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.trip-km-val {
+  font-size: 32px;
+  font-weight: 300;
+  line-height: 1;
+}
+
+.trip-km-val small {
+  font-size: 14px;
+  color: var(--cockpit-muted);
+}
+
+.trip-sub-stats {
+  font-size: 11px;
+  color: var(--cockpit-muted);
+}
+
+.curvy-road-wrap {
+  position: relative;
+  height: 85px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.curvy-road-label {
+  font-size: 10px;
+  color: var(--cockpit-muted);
+  margin-bottom: 2px;
+}
+
+.curvy-road-svg {
+  width: 100%;
+  height: 60px;
+  overflow: visible;
+}
+
+.road-ribbon-path {
+  fill: none;
+  stroke: #10b981;
+  stroke-width: 3.5;
+  stroke-linecap: round;
+  filter: drop-shadow(0 0 8px #10b981);
+}
+
+.road-pin-glow {
+  fill: #67e8f9;
+  filter: drop-shadow(0 0 8px #06b6d4);
+}
+
+/* Card 9: Avg Efficiency & Highway Lanes */
+.eff-content-grid {
+  display: grid;
+  grid-template-columns: 1fr 1.2fr;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+}
+
+.eff-big-val {
+  font-size: 34px;
+  font-weight: 300;
+  line-height: 1;
+}
+
+.eff-big-val small {
+  font-size: 14px;
+  color: var(--cockpit-muted);
+}
+
+.highway-lanes-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 95px;
+}
+
+.highway-lanes-svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.highway-lane-line {
+  stroke: #06b6d4;
+  stroke-width: 2.2;
+  filter: drop-shadow(0 0 8px #06b6d4);
+}
+
+.highway-car-img {
+  position: relative;
+  z-index: 1;
+  max-height: 70px;
+  object-fit: contain;
+  filter: drop-shadow(0 8px 14px rgba(0, 0, 0, 0.7));
+}
+
+/* Card 10: Tire Pressure (TPMS) */
+.tpms-content-grid {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+}
+
+.tpms-col {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-around;
+  height: 100%;
+  gap: 12px;
+}
+
+.tpms-col.left {
+  align-items: flex-end;
+  text-align: right;
+}
+
+.tpms-col.right {
+  align-items: flex-start;
+  text-align: left;
+}
+
+.tpms-tire-cell {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.1;
+}
+
+.tpms-tire-cell .p-val {
+  font-size: 20px;
+  font-weight: 500;
+  color: var(--cockpit-text);
+}
+
+.tpms-tire-cell .t-val {
+  font-size: 11px;
+  color: var(--cockpit-muted);
+}
+
+.tpms-car-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.tpms-car-center img {
+  max-height: 95px;
+  object-fit: contain;
+}
+
+/* Card 11: Climate & Airflow Graphic */
+.climate-content-grid {
+  display: grid;
+  grid-template-columns: 1.1fr 1fr;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+}
+
+.climate-left-side {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.climate-temp-big {
+  font-size: 34px;
+  font-weight: 300;
+  color: #38bdf8;
+  line-height: 1;
+}
+
+.climate-fan-sub {
+  font-size: 12px;
+  color: var(--cockpit-muted);
+}
+
+.climate-airflow-wrap {
+  position: relative;
+  height: 95px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.climate-airflow-svg {
+  width: 100%;
+  height: 100%;
+}
+
+.airflow-cabin-outline {
+  fill: rgba(15, 23, 42, 0.6);
+  stroke: rgba(255, 255, 255, 0.15);
+  stroke-width: 1.5;
+}
+
+.airflow-stream {
+  fill: none;
+  stroke: #38bdf8;
+  stroke-width: 2.5;
+  stroke-linecap: round;
+  filter: drop-shadow(0 0 6px rgba(56, 189, 248, 0.8));
+  animation: stream-flow 2s linear infinite;
+}
+
+@keyframes stream-flow {
+  0% { stroke-dasharray: 10 30; stroke-dashoffset: 0; }
+  100% { stroke-dasharray: 10 30; stroke-dashoffset: -40; }
+}
+
+/* Responsive breakpoint for smaller tablet/phones */
+@media (max-width: 1024px) {
+  .cockpit-container {
+    grid-template-columns: repeat(6, 1fr);
+  }
+  .card-my-car {
+    grid-column: span 6;
+  }
+  .card-outside-temp {
+    grid-column: span 6;
+  }
+  .span-4 {
+    grid-column: span 3;
+  }
+}
+
+@media (max-width: 640px) {
+  .cockpit-container {
+    grid-template-columns: 1fr;
+  }
+  .card-my-car,
+  .card-outside-temp,
+  .span-4 {
+    grid-column: span 1;
+  }
+  .card-my-car {
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: auto auto;
+  }
+  .car-image-wrap {
+    display: none;
+  }
+}

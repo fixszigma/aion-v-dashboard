@@ -1,0 +1,245 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content" />
+  <meta name="theme-color" content="#0b0f19" />
+  <meta name="description" content="Real-time responsive telemetry web dashboard for AION V electric vehicle using OBD-II data stream" />
+  <title>AION V · Telemetry Dashboard</title>
+
+  <!-- Tailwind is optional: the layout and theme live in styles.css, so the dashboard
+       still renders correctly offline in the car if the CDN can't be reached. -->
+  <script>
+    window.tailwind = window.tailwind || {};
+    window.tailwind.config = {
+      corePlugins: { preflight: false },
+      theme: {
+        extend: {
+          colors: {
+            night: '#0b0f19',
+            card: 'rgba(18, 24, 38, 0.7)',
+            accent: '#06b6d4',
+            success: '#10b981',
+            warning: '#f59e0b',
+            danger: '#ef4444',
+            main: '#f1f5f9',
+            muted: '#94a3b8',
+          },
+        },
+      },
+    };
+  </script>
+  <script src="https://cdn.tailwindcss.com" defer></script>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <main class="dashboard" id="dashboard">
+
+    <!-- ========================================================= CAR TOP -->
+    <section class="card area-car-top" id="module_car_top" aria-label="Gear and vehicle overview">
+      <div class="car-top-summary">
+        <header class="card-head">
+          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 17h14M6 17l1.5-5.2A2 2 0 0 1 9.4 10.3h5.2a2 2 0 0 1 1.9 1.5L18 17M7.5 17v2M16.5 17v2M8 14h.01M16 14h.01" /></svg>
+          <h2>My car</h2>
+        </header>
+        <div class="hero-row">
+          <span class="hero-num tabular-nums" id="car-soc">--</span><span class="hero-unit">%</span>
+        </div>
+        <div class="sub-row">
+          <span class="sub-num tabular-nums" id="range-val">--</span><span class="sub-unit">km</span>
+          <span class="muted">Range</span>
+        </div>
+        <div class="badges">
+          <span class="badge badge-danger" id="lock-badge">Unlocked</span>
+          <span class="badge badge-info" id="health-badge">Check OK</span>
+        </div>
+      </div>
+
+      <div class="marathon-box" aria-live="polite">
+        <div class="muted small">How far can I go?</div>
+        <div class="marathon-main"><span class="tabular-nums" id="marathon-val">--</span> marathons</div>
+        <div class="muted small">With <span class="tabular-nums" id="marathon-range">--</span> km left</div>
+        <div class="muted tiny">One marathon = 42.195 km</div>
+      </div>
+
+      <div class="gear-block">
+        <div class="gear-letter" id="gear-val" data-gear="P">P</div>
+        <div class="gear-label" id="gear-label">Park</div>
+        <div class="gear-strip" id="gear-strip" aria-hidden="true">
+          <span data-g="P" class="on">P</span><span data-g="R">R</span><span data-g="N">N</span><span data-g="D">D</span>
+        </div>
+      </div>
+
+      <figure class="car-figure car-front">
+        <img src="assets/aion_v_front.png" alt="AION V Front" data-fallback="front" draggable="false" />
+      </figure>
+
+      <div class="link-status" id="link-status" title="Telemetry link">
+        <span class="dot"></span><span id="link-text">Connecting…</span>
+      </div>
+    </section>
+
+    <!-- ========================================================= SPEED -->
+    <section class="card area-speed" id="module_speed" aria-label="Speedometer and motor state">
+      <header class="card-head">
+        <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 14l4-5M4.9 19a9 9 0 1 1 14.2 0" /></svg>
+        <h2>Speed</h2>
+        <span class="head-right muted small" id="power-readout"><span class="tabular-nums" id="power-val">0</span> kW</span>
+      </header>
+      <div class="speed-gauge-wrap">
+        <div class="gauge-box">
+        <svg class="speed-gauge" id="speed-gauge" viewBox="0 0 200 178" role="img" aria-label="Speedometer">
+          <defs>
+            <linearGradient id="speedGrad" x1="0" y1="1" x2="1" y2="0">
+              <stop offset="0" stop-color="#10b981" />
+              <stop offset=".55" stop-color="#06b6d4" />
+              <stop offset="1" stop-color="#38bdf8" />
+            </linearGradient>
+            <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+              <feGaussianBlur stdDeviation="2.4" result="b" />
+              <feMerge><feMergeNode in="b" /><feMergeNode in="SourceGraphic" /></feMerge>
+            </filter>
+          </defs>
+          <path class="g-track" d="M 43.43 156.57 A 80 80 0 1 1 156.57 156.57" pathLength="100" />
+          <path class="g-value" id="speed-arc" d="M 43.43 156.57 A 80 80 0 1 1 156.57 156.57" pathLength="100" stroke="url(#speedGrad)" filter="url(#glow)" />
+          <g id="speed-ticks"></g>
+          <g class="g-needle" id="speed-needle">
+            <path d="M100 100 L97.6 96 L100 30 L102.4 96 Z" />
+          </g>
+          <circle class="g-hub" cx="100" cy="100" r="7" />
+        </svg>
+        <div class="speed-readout">
+          <span class="speed-num tabular-nums" id="speed-val">0</span>
+          <span class="speed-unit">km/h</span>
+        </div>
+        </div>
+      </div>
+      <div class="metric-row">
+        <div class="metric"><span class="metric-label">Motor</span><span><b class="tabular-nums" id="motor-rpm">0</b> <small>rpm</small></span></div>
+        <div class="metric"><span class="metric-label">Motor temp</span><span><b class="tabular-nums" id="motor-temp">--</b> <small>°C</small></span></div>
+      </div>
+    </section>
+
+    <!-- ========================================================= BATTERY -->
+    <section class="card area-battery" id="module_battery" aria-label="High voltage battery">
+      <header class="card-head">
+        <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8h14v8H4zM18 11h2v2h-2M7 11v2M10 11v2" /></svg>
+        <h2>Battery</h2>
+      </header>
+      <div class="battery-body">
+        <div class="ring-wrap">
+          <div class="ring-box">
+            <svg class="ring" viewBox="0 0 120 120" role="img" aria-label="State of charge">
+              <circle class="ring-track" cx="60" cy="60" r="50" pathLength="100" />
+              <circle class="ring-value" id="soc-ring" cx="60" cy="60" r="50" pathLength="100" />
+            </svg>
+            <div class="ring-center"><span class="tabular-nums" id="soc-val">--</span><small>%</small></div>
+          </div>
+        </div>
+        <div class="battery-energy">
+          <div><span class="energy-num tabular-nums" id="kwh-val">--</span> <span class="energy-unit">kWh</span></div>
+          <div class="battery-tags">
+            <span>Remaining</span><span id="battery-temp-tag">-- °C</span><span id="plug-tag">Unplugged</span>
+          </div>
+        </div>
+        <div class="battery-graphic" aria-hidden="true">
+          <div class="battery-cap"></div>
+          <div class="battery-shell"><div class="battery-fill" id="battery-fill"></div></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========================================================= CHARGING -->
+    <section class="card area-charging" id="module_charging" aria-label="Charging state">
+      <header class="card-head">
+        <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 20V5a1 1 0 0 1 1-1h7a1 1 0 0 1 1 1v15M4 20h13M15 9h2a2 2 0 0 1 2 2v5a1 1 0 0 0 2 0V8l-2-2M10 8l-2 4h3l-2 4" /></svg>
+        <h2>Charging</h2>
+      </header>
+      <div class="charging-body">
+        <div class="charging-text">
+          <div class="status-badge" id="charging-status" data-state="not_charging">Not charging</div>
+          <div class="charging-detail muted small" id="charging-detail">Plug in to start charging</div>
+        </div>
+        <figure class="car-figure car-rear">
+          <img src="assets/aion_v_rear.png" alt="AION V Rear" data-fallback="rear" draggable="false" />
+        </figure>
+      </div>
+    </section>
+
+    <!-- ========================================================= CLIMATE -->
+    <section class="card area-climate" id="module_climate" aria-label="HVAC">
+      <header class="card-head">
+        <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v18M5.6 6.6l12.8 10.8M18.4 6.6 5.6 17.4M9 4.5 12 6l3-1.5M9 19.5 12 18l3 1.5" /></svg>
+        <h2>Climate</h2>
+        <span class="head-right ac-pill" id="ac-pill">A/C</span>
+      </header>
+      <div class="climate-body">
+        <div class="climate-block">
+          <div class="metric-label">Cabin</div>
+          <div class="climate-main"><span class="tabular-nums" id="cabin-temp">--</span><span class="climate-unit">°C</span></div>
+          <div class="muted small">Fan <span class="tabular-nums" id="fan-level">--</span></div>
+        </div>
+        <div class="climate-block outside">
+          <div class="metric-label">Outside</div>
+          <div class="outside-row">
+            <div class="climate-sub"><span class="tabular-nums" id="outside-temp">--</span><span class="climate-unit">°C</span></div>
+            <svg class="thermo" viewBox="0 0 40 100" aria-hidden="true">
+              <rect class="thermo-tube" x="14" y="6" width="12" height="66" rx="6" />
+              <rect class="thermo-fill" id="thermo-fill" x="17" y="40" width="6" height="34" rx="3" />
+              <circle class="thermo-bulb" cx="20" cy="82" r="11" />
+              <text x="32" y="12" class="thermo-lbl">40°</text>
+              <text x="32" y="72" class="thermo-lbl">-20°</text>
+            </svg>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========================================================= TIRES -->
+    <section class="card area-tires" id="module_tires" aria-label="TPMS monitoring">
+      <header class="card-head">
+        <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8" /><circle cx="12" cy="12" r="3" /><path d="M12 4v5M12 15v5M4 12h5M15 12h5" /></svg>
+        <h2>Tire pressure</h2>
+        <span class="head-right muted small" id="tpms-summary">bar</span>
+      </header>
+      <div class="tires-body">
+        <div class="tire tire-fl" id="tire-fl" data-level="ok"><span class="tire-p"><b class="tabular-nums" id="tire-fl-p">--</b><small>bar</small></span><span class="tire-t"><span class="tabular-nums" id="tire-fl-t">--</span>°C</span><span class="tire-pos">FL</span></div>
+        <div class="tire tire-rl" id="tire-rl" data-level="ok"><span class="tire-p"><b class="tabular-nums" id="tire-rl-p">--</b><small>bar</small></span><span class="tire-t"><span class="tabular-nums" id="tire-rl-t">--</span>°C</span><span class="tire-pos">RL</span></div>
+        <figure class="car-figure car-top-down">
+          <img src="assets/aion_v_top.png" alt="AION V top-down" data-fallback="top" draggable="false" />
+        </figure>
+        <div class="tire tire-fr" id="tire-fr" data-level="ok"><span class="tire-p"><b class="tabular-nums" id="tire-fr-p">--</b><small>bar</small></span><span class="tire-t"><span class="tabular-nums" id="tire-fr-t">--</span>°C</span><span class="tire-pos">FR</span></div>
+        <div class="tire tire-rr" id="tire-rr" data-level="ok"><span class="tire-p"><b class="tabular-nums" id="tire-rr-p">--</b><small>bar</small></span><span class="tire-t"><span class="tabular-nums" id="tire-rr-t">--</span>°C</span><span class="tire-pos">RR</span></div>
+      </div>
+    </section>
+
+    <!-- ========================================================= ODOMETER -->
+    <section class="card area-odometer" id="module_odometer" aria-label="Trip and odometer">
+      <header class="card-head">
+        <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20 9 4M20 20 15 4M12 6v2M12 11v2M12 16v2" /></svg>
+        <h2>Odometer</h2>
+      </header>
+      <div class="odo-body">
+        <div><span class="odo-num tabular-nums" id="odo-val">--</span> <span class="odo-unit">km</span></div>
+        <div class="odo-trip muted small">This trip <b class="tabular-nums" id="trip-val">0.0</b> km · <span id="trip-time">0:00</span></div>
+      </div>
+    </section>
+
+    <!-- ========================================================= EFFICIENCY -->
+    <section class="card area-efficiency" id="module_efficiency" aria-label="Average efficiency">
+      <header class="card-head">
+        <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 19c0-8 6-14 14-14 0 8-6 14-14 14zM5 19l7-7" /></svg>
+        <h2>Avg. efficiency</h2>
+        <span class="head-right muted small">instant</span>
+      </header>
+      <div class="eff-body">
+        <div class="eff-value"><span class="eff-num tabular-nums" id="eff-val">--</span> <span class="eff-unit">km/kWh</span></div>
+        <canvas class="eff-chart" id="eff-chart" aria-label="Instant efficiency trend"></canvas>
+      </div>
+    </section>
+
+  </main>
+
+  <script src="app.js" defer></script>
+</body>
+</html>
