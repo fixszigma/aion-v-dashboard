@@ -119,4 +119,20 @@ test('SimVehicle: turn signals, steering differential and doors', () => {
   // Doors
   v.manualDoors = 0x80 | 0x08; // Front right (driver) and Boot
   assert.equal(v.encode('720', '1201')[0], 0x88);
+
+  // Headlights simulation bits on IBCM 720:2101 (preserving 0x0800 brake & 0x0100 reverse)
+  v.inputBrake = 0;
+  v.inputGear = 'D';
+  v.inputHeadlights = 'off';
+  v.step(0.1);
+  let hlRaw = (v.encode('720', '2101')[0] << 8) | v.encode('720', '2101')[1];
+  assert.equal(hlRaw & 0x0007, 0x0000);
+
+  v.inputHeadlights = 'low';
+  hlRaw = (v.encode('720', '2101')[0] << 8) | v.encode('720', '2101')[1];
+  assert.equal(hlRaw & 0x0003, 0x0003);
+
+  v.inputHeadlights = 'high';
+  hlRaw = (v.encode('720', '2101')[0] << 8) | v.encode('720', '2101')[1];
+  assert.equal(hlRaw & 0x0007, 0x0007);
 });

@@ -51,6 +51,7 @@ export class SimVehicle {
     this.inputGear = 'P';   // 'P', 'R', 'N', 'D'
     this.inputSteer = 0;    // -450° to +450° (steering wheel angle, - = left, + = right)
     this.inputTurnSignal = 'off'; // 'off' | 'left' | 'right' | 'hazard'
+    this.inputHeadlights = 'auto'; // 'auto' | 'off' | 'drl' | 'low' | 'high'
     this.manualDoors = 0;   // Bitmask: 0x80 FR, 0x40 FL, 0x20 RL, 0x10 RR, 0x08 Boot
     this.manualLocked = null; // null = auto by speed, true = locked, false = unlocked
 
@@ -279,9 +280,29 @@ export class SimVehicle {
     }
     const tc = this.tc ?? 0;
     if (!on) return 0;
-    if (tc > 112 && tc < 122) return 0x80;
-    if (tc > 135 && tc < 142) return 0x08;
+    if ((tc > 8 && tc < 15) || (tc > 112 && tc < 122)) return 0x80;
+    if ((tc > 22 && tc < 29) || (tc > 135 && tc < 142)) return 0x08;
     return 0;
+  }
+
+  get headlightBits() {
+    // Simulated lower lamp bits inside 720:2101 (0x0001=DRL, 0x0002=Low Beam, 0x0004=High Beam)
+    if (this.driveMode === 'manual') {
+      if (this.inputHeadlights === 'off') return 0x0000;
+      if (this.inputHeadlights === 'drl') return 0x0001;
+      if (this.inputHeadlights === 'low') return 0x0003;
+      if (this.inputHeadlights === 'high') return 0x0007;
+      // 'auto': DRL in D/R, Low Beam when moving fast or dark phase
+      if (this.gear === 'P') return 0x0001;
+      return Math.abs(this.speed) > 40 ? 0x0003 : 0x0001;
+    }
+    const tc = this.tc ?? 0;
+    if (this.gear === 'P' && tc < 4) return 0x0001; // DRL on standby
+    if (tc >= 20 && tc < 40) return 0x0003;          // Low beam on
+    if (tc >= 40 && tc < 48) return 0x0007;          // High beam demo flash
+    if (tc >= 100 && tc < 165) return 0x0003;        // Tunnel low beam
+    if (tc >= 210 && tc < 235) return 0x0007;        // Highway high beam
+    return 0x0001;                                   // Daylight DRL
   }
 
   get driverWindow() {
@@ -352,12 +373,16 @@ export class SimVehicle {
       case '7E2:1181': return [b8(Math.max(...bmu) + 40)];
       case '7E2:1182': return [b8(Math.min(...bmu) + 40)];
       case '7E2:1183': return [b8(bmu.reduce((a, b) => a + b, 0) / bmu.length + 40)];
+      case '7E2:1184': return [bmu.indexOf(Math.max(...bmu)) + 1];
+      case '7E2:1004': return be16((this.t * 50) % 65536);
       case '7E2:114D': return be24(this.cec * 10);
       case '7E2:1189': return be24(this.ced * 10);
       case '7E2:1136': return [118];
       case '7E2:1000': return [b8(132 + n())];
 
       // VCU (7E3)
+      case '7E3:1000': return [b8(135 + n())];
+      case '7E3:1442': return be16(this.voltage * 10);
       case '7E3:1477': return be16(this._wheelSpeed(0) * 200); // FL
       case '7E3:1478': return be16(this._wheelSpeed(1) * 200); // FR
       case '7E3:1479': return be16(this._wheelSpeed(2) * 200); // RL
@@ -371,6 +396,8 @@ export class SimVehicle {
       case '7E3:2314': return be16(this.soc > 95 ? 20 : 90);
 
       // MCU (7E4)
+      case '7E4:1000': return [b8(137 + n())];
+      case '7E4:1104': return [b8(this.motorTemp + 41)];
       case '7E4:1110': {
         let rpm = 0;
         if (this.gear === 'D') rpm = this.speed * 70.7;
@@ -387,6 +414,7 @@ export class SimVehicle {
       case '7E6:110C': return [b8(29 + this.batTempBase * 0.1 + 40)];
 
       // IBCM (720)
+      case '720:1000': case '720:1001': return [b8(134 + n())];
       case '720:11FF': {
         const p = [35.6, 38.6, 35.4, 35.0].map((x) => b8((x + this.tireTempRise * 0.08) * 5));
         const t = [31, 27, 37, 37].map((x) => b8(x + this.tireTempRise + 50));
@@ -394,13 +422,28 @@ export class SimVehicle {
       }
       case '720:1201': return [this.doors];
       case '720:1200': return be16((this.gear === 'P' ? 0x0010 : 0) | (this.brakeSwitch ? 0x0020 : 0));
+      case '720:1207': return be16(this.brakeSwitch ? 0x8004 : 0x0004);
       case '720:2100': return [this.turn];
-      case '720:2101': return be16((this.brakeSwitch || this.brake > 50 || this.accel < -0.5 ? 0x0800 : 0) | (this.gear === 'R' ? 0x0100 : 0));
+      case '720:2101': {
+        const base = this.gear === 'P' ? 0x3010 : 0x2010;
+        const brakeBit = (this.brakeSwitch || this.brake > 50 || this.accel < -0.5) ? 0x0800 : 0;
+        const revBit = this.gear === 'R' ? 0x0100 : 0;
+        return be16(base | brakeBit | revBit | this.headlightBits);
+      }
+      case '720:2102': return [this.doors || !this.locked ? 0x82 : 0x80];
 
-      // Door modules (719 / 718)
+      // Door modules (719 / 718) & Support ECUs
+      case '719:1000': case '718:1000': return [b8(136 + n())];
       case '719:1203': case '718:1203': return this.locked ? [0xa8, 0x00] : [0x94, 0x00];
       case '719:1208': return [1, b8(this.driverWindow * 2), 0, 0, 1, 0, 0, 0];
       case '718:1208': return [1, 0, 0, 0, 1, 0, 0, 0];
+      case '72B:1000': case '724:1000': case '72D:1000': case '734:1000': case '74F:1000': case '765:1000': return [b8(139 + n())];
+      case '72B:1202': case '72B:2104': {
+        const d = new Date();
+        const bcd = (v) => ((Math.floor(v / 10) << 4) | (v % 10)) & 0xff;
+        const y = d.getFullYear();
+        return [bcd(Math.floor(y / 100)), bcd(y % 100), bcd(d.getMonth() + 1), bcd(d.getDate()), bcd(d.getHours()), bcd(d.getMinutes()), bcd(d.getSeconds())];
+      }
 
       // IPB (710)
       case '710:1101': return [

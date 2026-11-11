@@ -14,7 +14,16 @@ const $$ = (s, root = document) => [...root.querySelectorAll(s)];
 
 // ============================================================================ settings
 const SETTINGS_KEY = 'aionv.settings.v1';
-const DEFAULTS = { fastMs: 600, slowS: 20, categories: Object.keys(POLL_CATEGORIES), caf0: false, capacity: BATTERY_NOMINAL_KWH };
+const DEFAULTS = {
+  fastMs: 500,
+  slowS: 20,
+  categories: Object.keys(POLL_CATEGORIES),
+  caf0: false,
+  capacity: BATTERY_NOMINAL_KWH,
+  turboLights: false,
+  headlightLowMask: 0,   // User-learned bitmask on live 720:2101 (0 = unconfigured in live mode)
+  headlightHighMask: 0,  // User-learned bitmask on live 720:2101
+};
 const settings = (() => {
   try { return { ...DEFAULTS, ...JSON.parse(localStorage.getItem(SETTINGS_KEY) || '{}') }; } catch { return { ...DEFAULTS }; }
 })();
@@ -31,6 +40,7 @@ let lastValuesAt = 0;
 let lastLog = null;
 let wakeLock = null;
 let voltTimer = null;
+let learnBase2101 = null;
 const gTrail = [];
 
 // name -> poll tier (for staleness)
@@ -75,6 +85,10 @@ const DERIVED = {
   yaw_rate: [() => dyn().yaw_rate_degs ?? null, 'dynamics'],
   brake_pressure: [() => dyn().brake_pressure_raw ?? null, 'dynamics'],
   equiv_cycles: [() => (tel.get('energy_discharged_total') != null ? tel.get('energy_discharged_total') / tel.capacityKwh : null), 'energy_discharged_total'],
+  tpms_t1_bar: [() => (tel.get('tpms')?.tire_1_psi != null ? tel.get('tpms').tire_1_psi / 14.5038 : null), 'tpms'],
+  tpms_t2_bar: [() => (tel.get('tpms')?.tire_2_psi != null ? tel.get('tpms').tire_2_psi / 14.5038 : null), 'tpms'],
+  tpms_t3_bar: [() => (tel.get('tpms')?.tire_3_psi != null ? tel.get('tpms').tire_3_psi / 14.5038 : null), 'tpms'],
+  tpms_t4_bar: [() => (tel.get('tpms')?.tire_4_psi != null ? tel.get('tpms').tire_4_psi / 14.5038 : null), 'tpms'],
 };
 
 function resolve(key) {
@@ -248,6 +262,111 @@ function renderOverview() {
     chargeEl.textContent = isCharging ? 'Charging' : 'Not charging';
     if (plugTag) plugTag.textContent = isCharging ? 'Plugged' : 'Unplugged';
   }
+
+  // 8. Full-Car Realtime Lighting Card
+  renderLightingRealtime();
+}
+
+/**
+ * Determines Headlight level from 720:2101:
+ * - Demo mode uses simulator bits 0x0001 (DRL), 0x0002 (Low), 0x0004 (High).
+ * - Live car mode uses user-learned masks (headlightLowMask / headlightHighMask)
+ *   so unverified bits are never assumed silently.
+ */
+function resolveHeadlightsState() {
+  const lights = tel.get('lights');
+  if (!lights || lights.raw == null) return { level: 'unknown', label: 'รอข้อมูล OBD2', badge: 'WAIT', source: '–' };
+  const raw = lights.raw;
+
+  if (mode === 'demo') {
+    if (raw & 0x0004) return { level: 'high', label: 'ไฟสูง (HIGH BEAM)', badge: 'HIGH', source: 'Demo · 2101' };
+    if (raw & 0x0002) return { level: 'low', label: 'ไฟต่ำ (LOW BEAM)', badge: 'LOW', source: 'Demo · 2101' };
+    if (raw & 0x0001) return { level: 'drl', label: 'ไฟหรี่ / DRL', badge: 'DRL', source: 'Demo · 2101' };
+    return { level: 'off', label: 'ไฟหน้าปิด (OFF)', badge: 'OFF', source: 'Demo · 2101' };
+  }
+
+  const hiM = settings.headlightHighMask || 0;
+  const loM = settings.headlightLowMask || 0;
+  if (hiM && (raw & hiM) === hiM) return { level: 'high', label: 'ไฟสูง (HIGH BEAM)', badge: 'HIGH', source: `Mask 0x${hiM.toString(16).toUpperCase()}` };
+  if (loM && (raw & loM) === loM) return { level: 'low', label: 'ไฟต่ำ (LOW BEAM)', badge: 'LOW', source: `Mask 0x${loM.toString(16).toUpperCase()}` };
+  if (loM || hiM) return { level: 'off', label: 'ไฟหน้าปิด (OFF)', badge: 'OFF', source: `Mask Configured` };
+  return { level: 'unmapped', label: `ค่าดิบ 0x${lights.raw_hex || '----'}`, badge: 'UNMAPPED', source: 'กดจับคู่บิต' };
+}
+
+function fmtBits16(v) {
+  if (v == null) return '–––– –––– –––– ––––';
+  const s = v.toString(2).padStart(16, '0');
+  return `${s.slice(0, 4)} ${s.slice(4, 8)} ${s.slice(8, 12)} ${s.slice(12, 16)}`;
+}
+
+function renderLightingRealtime() {
+  const turn = tel.get('turn_signals') || {};
+  const lights = tel.get('lights') || {};
+  const pedal = tel.get('pedal_park') || {};
+  const doors = tel.get('doors') || {};
+  const body2102 = tel.get('body_status_2102') || {};
+
+  const leftOn = !!turn.left;
+  const rightOn = !!turn.right;
+  const hazardOn = leftOn && rightOn;
+  const brakeOn = !!lights.brake_light;
+  const reverseOn = !!lights.reverse_light;
+  const head = resolveHeadlightsState();
+  const drlOn = head.level === 'drl' || head.level === 'low' || head.level === 'high';
+  const lowOn = head.level === 'low' || head.level === 'high';
+  const highOn = head.level === 'high';
+
+  // Full-Car SVG Optical Beams & Lamps
+  $('#rtBeamLow').classList.toggle('on', lowOn);
+  $('#rtBeamHigh').classList.toggle('on', highOn);
+  ['rtDrlL', 'rtDrlR'].forEach((id) => $(`#${id}`).classList.toggle('on', drlOn));
+  ['rtHeadL', 'rtHeadR'].forEach((id) => {
+    const el = $(`#${id}`);
+    el.classList.toggle('low', head.level === 'low');
+    el.classList.toggle('high', head.level === 'high');
+  });
+
+  ['rtTurnFL', 'rtMirrorTurnL', 'rtTurnRL'].forEach((id) => $(`#${id}`).classList.toggle('on', leftOn));
+  ['rtTurnFR', 'rtMirrorTurnR', 'rtTurnRR'].forEach((id) => $(`#${id}`).classList.toggle('on', rightOn));
+  ['rtBrakeHigh', 'rtBrakeBar', 'rtBrakeL', 'rtBrakeR', 'rtBrakeGlow'].forEach((id) => $(`#${id}`).classList.toggle('on', brakeOn));
+  ['rtRevL', 'rtRevR'].forEach((id) => $(`#${id}`).classList.toggle('on', reverseOn));
+
+  // Swinging doors on Full-Car Stage
+  const dMap = { rtDoorFL: doors.front_left_open, rtDoorFR: doors.front_right_open, rtDoorRL: doors.rear_left_open, rtDoorRR: doors.rear_right_open, rtDoorBoot: doors.boot_open };
+  let openCount = 0;
+  for (const [id, isOpen] of Object.entries(dMap)) {
+    $(`#${id}`).classList.toggle('open', !!isOpen);
+    if (isOpen) openCount++;
+  }
+  $('#rtDoorsQuickTag').textContent = openCount ? `เปิดอยู่ ${openCount} จุด` : 'ประตูปิดสนิท';
+
+  // Status Pillars
+  $('#rtBoxHeadlight').classList.toggle('on-cyan', lowOn || highOn || drlOn);
+  $('#rtHeadlightText').textContent = head.label;
+  $('#rtHeadlightBadge').textContent = head.badge;
+
+  $('#rtBoxTurn').classList.toggle('on-amber', leftOn || rightOn);
+  $('#rtPillTurnL').classList.toggle('on', leftOn && !hazardOn);
+  $('#rtPillTurnR').classList.toggle('on', rightOn && !hazardOn);
+  $('#rtPillHazard').classList.toggle('on', hazardOn);
+  $('#rtTurnHex').textContent = turn.raw != null ? `0x${turn.raw.toString(16).toUpperCase().padStart(2, '0')}` : '0x00';
+
+  $('#rtBoxBrake').classList.toggle('on-red', brakeOn);
+  $('#rtBrakeText').textContent = brakeOn ? 'ไฟเบรกติด (BRAKE ON)' : 'ไฟเบรกดับ';
+  $('#rtReverseBadge').textContent = reverseOn ? 'ถอย: ติด (R)' : 'ถอย: ดับ';
+  $('#rtPedalBadge').textContent = pedal.brake_pedal ? 'เหยียบเบรก' : pedal.park ? 'เกียร์ P' : 'ปล่อยเบรก';
+
+  // Raw Bit Monitor
+  $('#rtRaw2100').textContent = turn.raw != null ? `0x${turn.raw.toString(16).toUpperCase().padStart(2, '0')}` : '–';
+  $('#rtRaw2101').textContent = lights.raw_hex ? `0x${lights.raw_hex}` : '–';
+  $('#rtRaw2102').textContent = body2102.raw != null ? `0x${body2102.raw.toString(16).toUpperCase().padStart(2, '0')}` : '–';
+  $('#rtRawBits2101').textContent = fmtBits16(lights.raw);
+  $('#rtSavedMaskLabel').textContent =
+    mode === 'demo'
+      ? 'Demo (0x01/02/04)'
+      : settings.headlightLowMask || settings.headlightHighMask
+        ? `Low 0x${(settings.headlightLowMask || 0).toString(16).toUpperCase()} / High 0x${(settings.headlightHighMask || 0).toString(16).toUpperCase()}`
+        : 'ยังไม่ตั้งค่า (รถจริง)';
 }
 
 function renderBattery() {
@@ -274,6 +393,12 @@ function renderBody() {
   ['turn_fr', 'turn_rr'].forEach((id) => $(`#${id}`).classList.toggle('on', !!turn.right));
   const lights = tel.get('lights') || {};
   const pedal = tel.get('pedal_park') || {};
+  const head = resolveHeadlightsState();
+  ['tabBodyHeadL', 'tabBodyHeadR'].forEach((id) => {
+    const h = $(`#${id}`);
+    h.classList.toggle('on', head.level === 'low' || head.level === 'high' || head.level === 'drl');
+    h.classList.toggle('high', head.level === 'high');
+  });
   ['brake_l', 'brake_r'].forEach((id) => $(`#${id}`).classList.toggle('on', !!lights.brake_light));
   $('#reverse_lamp').classList.toggle('on', !!lights.reverse_light);
 
@@ -439,6 +564,14 @@ function syncDemoControllerUI() {
   $('#demoTurnRight').classList.toggle('active', turnSig === 'right');
   $('#demoTurnHazard').classList.toggle('active', turnSig === 'hazard');
 
+  // Headlights
+  const headSig = veh.inputHeadlights;
+  $('#demoHeadOff').classList.toggle('active', headSig === 'off');
+  $('#demoHeadDrl').classList.toggle('active', headSig === 'drl');
+  $('#demoHeadLow').classList.toggle('active', headSig === 'low');
+  $('#demoHeadHigh').classList.toggle('active', headSig === 'high');
+  $('#demoHeadAuto').classList.toggle('active', headSig === 'auto');
+
   // Doors
   const doors = veh.doors;
   $('#demoDoorFR').classList.toggle('open', !!(doors & 0x80));
@@ -587,6 +720,21 @@ function initDemoControls() {
   $('#demoTurnRight').onclick = () => setTurn('right');
   $('#demoTurnHazard').onclick = () => setTurn('hazard');
 
+  // Headlights (simulated into IBCM 720:2101)
+  const setHead = (h) => {
+    const veh = getSimVehicle();
+    if (veh) {
+      if (veh.driveMode !== 'manual') veh.driveMode = 'manual';
+      veh.inputHeadlights = h;
+      syncDemoControllerUI();
+    }
+  };
+  $('#demoHeadOff').onclick = () => setHead('off');
+  $('#demoHeadDrl').onclick = () => setHead('drl');
+  $('#demoHeadLow').onclick = () => setHead('low');
+  $('#demoHeadHigh').onclick = () => setHead('high');
+  $('#demoHeadAuto').onclick = () => setHead('auto');
+
   // Doors
   const toggleDoor = (mask) => {
     const veh = getSimVehicle();
@@ -665,6 +813,10 @@ function initDemoControls() {
       setTurn(veh.inputTurnSignal === 'right' ? 'off' : 'right');
     } else if (e.code === 'KeyH') {
       setTurn(veh.inputTurnSignal === 'hazard' ? 'off' : 'hazard');
+    } else if (e.code === 'KeyL') {
+      const order = ['off', 'drl', 'low', 'high', 'auto'];
+      const cur = veh.inputHeadlights || 'auto';
+      setHead(order[(order.indexOf(cur) + 1) % order.length]);
     }
   });
 
@@ -707,6 +859,7 @@ async function connect(kind) {
     poller = new Poller(elm, {
       fastIntervalMs: settings.fastMs,
       slowIntervalMs: settings.slowS * 1000,
+      turboLights: !!settings.turboLights,
       categories: new Set(settings.categories),
       onValues: (values, meta) => {
         tel.update(values, meta.ts);
@@ -716,12 +869,22 @@ async function connect(kind) {
           gTrail.push({ x: d.lateral_accel_ms2 / 9.81, y: d.longitudinal_accel_ms2 / 9.81 });
           if (gTrail.length > 40) gTrail.shift();
         }
+        // Zero-latency realtime update when lighting / turn / brake / door frames arrive
+        if ('lights' in values || 'turn_signals' in values || 'doors' in values || 'pedal_park' in values || 'body_status_2102' in values) {
+          requestAnimationFrame(() => {
+            renderLightingRealtime();
+            if (activeTab() === 'body') renderBody();
+          });
+        }
       },
       onStatus: (s) => {
         if (s.type === 'cycle') {
           $('#perfCycle').textContent = s.cycleMs;
           $('#perfLatency').textContent = elm?.stats.lastLatencyMs ?? '–';
           tel.logRow();
+        } else if (s.type === 'lights-tick') {
+          $('#rtLightsMs').textContent = s.ms ?? '–';
+          $('#rtLightsHz').textContent = s.hz || '–';
         }
       },
     });
@@ -853,12 +1016,79 @@ function initSettings() {
   $('#btnRefreshSlow').onclick = () => { poller?.refreshSlow(); toast(poller ? 'กำลังดึงข้อมูลความถี่ต่ำ…' : 'ยังไม่ได้เชื่อมต่อ'); };
 }
 
+function initRealtimeLightControls() {
+  const turboBtn = $('#btnTurboLights');
+  const syncTurboBtn = () => {
+    const on = !!settings.turboLights;
+    turboBtn.classList.toggle('active', on);
+    turboBtn.textContent = on ? '⚡ หยุด Turbo (กลับโหมดรวม)' : '⚡ ดึงไฟรถเร็วสุด (Turbo 720)';
+  };
+  syncTurboBtn();
+
+  turboBtn.onclick = () => {
+    settings.turboLights = !settings.turboLights;
+    saveSettings();
+    syncTurboBtn();
+    poller?.setTurboLights(settings.turboLights);
+    toast(settings.turboLights ? '⚡ เปิดโหมด Turbo 720: อ่านเฉพาะไฟรถต่อเนื่องความเร็วสูงสุด!' : 'กลับสู่โหมดดึงข้อมูลครบทุกกล่อง');
+  };
+
+  $('#btnHeadlightProbe').onclick = () => {
+    $('#rtLearnPanel').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    $('#rtLearnHint').textContent = 'กำลังพร้อมจับคู่! ปิดไฟหน้าทั้งหมดแล้วกด "1. ฐาน" ได้เลยครับ';
+  };
+
+  $('#btnLearnBase').onclick = () => {
+    const raw = tel.get('lights')?.raw;
+    if (raw == null) { toast('ยังไม่มีข้อมูลจาก 720:2101 (กดเชื่อมต่อหรือโหมดสาธิตก่อน)', true); return; }
+    learnBase2101 = raw & ~(0x0800 | 0x0100); // Exclude brake/reverse bits from baseline
+    $('#rtLearnHint').textContent = `บันทึกค่าฐานปิดไฟ 0x${learnBase2101.toString(16).toUpperCase().padStart(4, '0')} แล้ว → ขั้นต่อไปเปิดไฟต่ำแล้วกด "2. จับไฟต่ำ"`;
+    toast(`บันทึกค่าฐานแล้ว (0x${learnBase2101.toString(16).toUpperCase().padStart(4, '0')})`);
+  };
+
+  $('#btnLearnLow').onclick = () => {
+    const raw = tel.get('lights')?.raw;
+    if (raw == null || learnBase2101 == null) { toast('กรุณากด "1. ฐาน (ปิดไฟ)" ก่อนเปิดไฟต่ำ', true); return; }
+    const diff = (raw ^ learnBase2101) & raw & ~(0x0800 | 0x0100);
+    if (!diff) { toast('ไม่พบบิตที่เปลี่ยนเป็น 1 ใน 720:2101 (ลองเช็คค่าในคอนโซล)', true); return; }
+    settings.headlightLowMask = diff;
+    saveSettings();
+    renderLightingRealtime();
+    toast(`จำบิตไฟต่ำสำเร็จ: 0x${diff.toString(16).toUpperCase()}`);
+    $('#rtLearnHint').textContent = `จำไฟต่ำ 0x${diff.toString(16).toUpperCase()} แล้ว! เปิดไฟสูงแล้วกด "3. จับไฟสูง" ต่อได้ทันที`;
+  };
+
+  $('#btnLearnHigh').onclick = () => {
+    const raw = tel.get('lights')?.raw;
+    if (raw == null || learnBase2101 == null) { toast('กรุณากด "1. ฐาน (ปิดไฟ)" ก่อนเปิดไฟสูง', true); return; }
+    const diff = (raw ^ learnBase2101) & raw & ~(0x0800 | 0x0100);
+    const highOnly = diff & ~(settings.headlightLowMask || 0);
+    const mask = highOnly || diff;
+    if (!mask) { toast('ไม่พบบิตไฟสูงที่เปลี่ยนใน 720:2101', true); return; }
+    settings.headlightHighMask = mask;
+    saveSettings();
+    renderLightingRealtime();
+    toast(`จำบิตไฟสูงสำเร็จ: 0x${mask.toString(16).toUpperCase()}`);
+  };
+
+  $('#btnLearnClear').onclick = () => {
+    learnBase2101 = null;
+    settings.headlightLowMask = 0;
+    settings.headlightHighMask = 0;
+    saveSettings();
+    renderLightingRealtime();
+    $('#rtLearnHint').textContent = 'ล้างมาสก์ไฟหน้าแล้ว — พร้อมสำหรับเรียนรู้ใหม่จากรถจริง';
+    toast('ล้างค่าบิตไฟหน้าแล้ว');
+  };
+}
+
 // ============================================================================ boot
 $('#btnBle').onclick = () => connect('ble');
 $('#btnDemo').onclick = () => connect('demo');
 $('#btnDisconnect').onclick = () => disconnect();
 initSettings();
 initDemoControls();
+initRealtimeLightControls();
 setButtons();
 
 if (!BleTransport.isSupported()) {

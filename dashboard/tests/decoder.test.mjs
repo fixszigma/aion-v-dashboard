@@ -3,10 +3,11 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
   parseUds62Payload, parseElmResponse, buildUdsReadCommand, assertReadOnly, POLL_GROUPS, getDid,
-  expectedResponseLength, isoTpFrameCount, ecuByTx,
+  expectedResponseLength, isoTpFrameCount, ecuByTx, ECU_MODULES, EXPRESS_LIGHTS_TARGET,
 } from '../js/decoder.js';
 import { SimTransport } from '../js/simulator.js';
 import { Elm327 } from '../js/elm327.js';
+import { Poller } from '../js/poller.js';
 import { Telemetry } from '../js/telemetry.js';
 
 test('vectors from aion_v_602_obd_decoder.py self-test', () => {
@@ -127,4 +128,61 @@ test('telemetry trip integration', () => {
   assert.ok(Math.abs(tel.efficiencyKwh100 - 15) < 0.01);
   const csv = Telemetry.toCsv([tel.snapshot()]);
   assert.match(csv.split('\n')[0], /speed_kmh/);
+});
+
+test('all 22 ECU modules, clocks, 12V supplies, and ultra-fast lighting batch', () => {
+  assert.equal(Object.keys(ECU_MODULES).length, 22);
+  assert.equal(ecuByTx('724').rx, '7A4');
+  assert.equal(ecuByTx('765').rx, '76D');
+
+  assert.equal(parseUds62Payload('72B', '62 12 02 20 26 10 11 18 33 34').cluster_clock, '2026-10-11 18:33:34');
+  assert.equal(parseUds62Payload('7E3', '62 05 11 1A 0A 0B 15 04 0F').vcu_clock, '2026-10-11 21:04:15');
+  assert.equal(parseUds62Payload('720', '62 12 07 80 04').brake_pedal_switch, true);
+  assert.equal(parseUds62Payload('720', '62 10 00 86').aux_12v_ibcm, 13.4);
+
+  const l = parseUds62Payload('720', '62 21 00 80 21 01 28 13 21 02 82');
+  assert.deepEqual(l.turn_signals, { left: true, right: false, raw: 0x80 });
+  assert.equal(l.lights.brake_light, true);
+  assert.equal(l.lights.reverse_light, false);
+  assert.equal(l.lights.raw_hex, '2813');
+  assert.deepEqual(l.body_status_2102, { interior_light_cand: true, raw: 0x82 });
+
+  assert.equal(EXPRESS_LIGHTS_TARGET.tx, '720');
+  assert.equal(buildUdsReadCommand(EXPRESS_LIGHTS_TARGET.tx, EXPRESS_LIGHTS_TARGET.dids), '22210021012102 2');
+  assert.equal(expectedResponseLength(EXPRESS_LIGHTS_TARGET.tx, EXPRESS_LIGHTS_TARGET.dids), 11);
+  assert.equal(isoTpFrameCount(11), 2);
+});
+
+test('Poller Turbo 720 Lock-On mode polls lights continuously with zero ECU switches', async () => {
+  const sim = new SimTransport({ latencyMs: [1, 2] });
+  const elm = new Elm327(sim);
+  await sim.connect();
+  await elm.init();
+
+  let ticks = 0;
+  let lastLights = null;
+  sim.vehicle.driveMode = 'manual';
+  sim.vehicle.inputBrake = 0.8;
+  sim.vehicle.inputTurnSignal = 'right';
+  sim.vehicle.t = 0.1;
+
+  const poller = new Poller(elm, {
+    turboLights: true,
+    turboIntervalMs: 5,
+    onValues: (v) => {
+      if (v.lights) lastLights = v;
+    },
+    onStatus: (s) => {
+      if (s.type === 'lights-tick') ticks++;
+    },
+  });
+
+  poller.start();
+  await new Promise((r) => setTimeout(r, 150));
+  poller.stop();
+  await sim.disconnect();
+
+  assert.ok(ticks >= 3, `Expected multiple rapid turbo lights ticks, got ${ticks}`);
+  assert.ok(lastLights?.lights.brake_light, 'Brake light decoded in Turbo mode');
+  assert.equal(lastLights?.turn_signals.right, true, 'Right turn signal decoded in Turbo mode');
 });

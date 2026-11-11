@@ -135,6 +135,15 @@
             <button class="btn-turn" id="demoTurnRight">ขวา ➡</button>
             <button class="btn-turn hazard" id="demoTurnHazard">⚠ ฉุกเฉิน</button>
           </div>
+
+          <label style="margin-top: 8px;">ไฟหน้า (Headlights จำลองลง 720:2101)</label>
+          <div class="demo-head-row">
+            <button class="btn-turn head" id="demoHeadOff">ปิด</button>
+            <button class="btn-turn head" id="demoHeadDrl">DRL</button>
+            <button class="btn-turn head" id="demoHeadLow">ไฟต่ำ</button>
+            <button class="btn-turn head" id="demoHeadHigh">ไฟสูง</button>
+            <button class="btn-turn head active" id="demoHeadAuto">Auto</button>
+          </div>
         </div>
 
         <!-- Doors & Body -->
@@ -163,6 +172,7 @@
         <span><code>A</code> / <code>D</code> หมุนพวงมาลัย</span>
         <span><code>Q</code> / <code>E</code> ไฟเลี้ยว ซ้าย/ขวา</span>
         <span><code>H</code> ไฟฉุกเฉิน</span>
+        <span><code>L</code> สลับไฟหน้า</span>
       </div>
     </div>
   </div>
@@ -236,6 +246,190 @@
               <text x="32" y="14" class="thermo-label">40°</text>
               <text x="32" y="70" class="thermo-label">-20°</text>
             </svg>
+          </div>
+        </div>
+
+        <!-- -------------------- HERO: FULL-CAR REALTIME LIGHTING GRAPHICS (SPAN 12) -------------------- -->
+        <div class="c-card span-12 card-realtime-lights" id="cardRealtimeLights">
+          <div class="c-card-header">
+            <svg class="c-icon" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7" /><circle cx="12" cy="12" r="9" /></svg>
+            <span>กราฟิกส์รถเต็มคัน Real-time · ไฟหน้า / ไฟเลี้ยว / ไฟเบรก (OBD2 · IBCM 720)</span>
+            <div class="rt-header-tools">
+              <span class="rt-rate-pill" title="ความเร็วในการดึงข้อมูลสถานะไฟจากกล่อง IBCM 720">
+                อัปเดตไฟ <b id="rtLightsMs">–</b> ms · <b id="rtLightsHz">–</b> Hz
+              </span>
+              <button class="rt-btn-turbo" id="btnTurboLights" title="ล็อกอ่านเฉพาะกล่อง 720 (22 2100 2101 2102) แบบต่อเนื่องความเร็วสูงสุด">⚡ ดึงไฟรถเร็วสุด (Turbo 720)</button>
+            </div>
+          </div>
+
+          <div class="rt-lights-grid">
+            <!-- Left Telemetry Pillars: Headlights / Turn Signals / Brake Lights -->
+            <div class="rt-pillars">
+              <div class="rt-stat-box" id="rtBoxHeadlight">
+                <div class="rt-stat-top">
+                  <span>💡 ไฟหน้า (Headlights)</span>
+                  <button class="link" id="btnHeadlightProbe" title="เทียบ/เรียนรู้บิตไฟหน้าบนรถจริงจาก 720:2101">จับคู่บิตรถจริง</button>
+                </div>
+                <div class="rt-stat-main">
+                  <span id="rtHeadlightText">ปิด / รอข้อมูล</span>
+                  <span class="c-badge c-badge-ok" id="rtHeadlightBadge" style="margin-left:auto;">OFF</span>
+                </div>
+              </div>
+
+              <div class="rt-stat-box" id="rtBoxTurn">
+                <div class="rt-stat-top">
+                  <span>🔶 ไฟเลี้ยว (720:2100)</span>
+                  <span id="rtTurnHex">0x00</span>
+                </div>
+                <div class="rt-turn-pills">
+                  <span class="rt-turn-pill" id="rtPillTurnL">◀ ซ้าย</span>
+                  <span class="rt-turn-pill" id="rtPillHazard">⚠ ฉุกเฉิน</span>
+                  <span class="rt-turn-pill" id="rtPillTurnR">ขวา ▶</span>
+                </div>
+              </div>
+
+              <div class="rt-stat-box" id="rtBoxBrake">
+                <div class="rt-stat-top">
+                  <span>🛑 ไฟเบรก &amp; ไฟถอย (720:2101)</span>
+                  <span id="rtReverseBadge">ถอย: ดับ</span>
+                </div>
+                <div class="rt-stat-main">
+                  <span id="rtBrakeText">ไฟเบรกดับ</span>
+                  <span class="c-badge" id="rtPedalBadge" style="margin-left:auto; background:rgba(255,255,255,0.06);">สวิตช์: –</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Center Full-Car Top-Down Optical Stage (Nose UP, Rear DOWN, RHD) -->
+            <div class="rt-car-stage">
+              <span class="rt-dir-tag front">▲ FRONT</span>
+              <span class="rt-dir-tag left">L ซ้าย</span>
+              <span class="rt-dir-tag right">R ขวา (คนขับ)</span>
+              <span class="rt-dir-tag rear">▼ REAR</span>
+
+              <svg class="rt-car-svg" id="fullCarRealtimeSvg" viewBox="0 0 360 300" role="img" aria-label="GAC Aion V Full-Car Realtime Lighting">
+                <defs>
+                  <linearGradient id="rtBodyMetal" x1="0" y1="0" x2="1" y2="0">
+                    <stop offset="0%" stop-color="#334155" />
+                    <stop offset="22%" stop-color="#94a3b8" />
+                    <stop offset="50%" stop-color="#e2e8f0" />
+                    <stop offset="78%" stop-color="#94a3b8" />
+                    <stop offset="100%" stop-color="#334155" />
+                  </linearGradient>
+                  <linearGradient id="rtLowBeamCone" x1="0" y1="1" x2="0" y2="0">
+                    <stop offset="0%" stop-color="#e0f2fe" stop-opacity="0.72" />
+                    <stop offset="65%" stop-color="#38bdf8" stop-opacity="0.22" />
+                    <stop offset="100%" stop-color="#0284c7" stop-opacity="0" />
+                  </linearGradient>
+                  <linearGradient id="rtHighBeamCone" x1="0" y1="1" x2="0" y2="0">
+                    <stop offset="0%" stop-color="#ffffff" stop-opacity="0.88" />
+                    <stop offset="50%" stop-color="#7dd3fc" stop-opacity="0.38" />
+                    <stop offset="100%" stop-color="#0ea5e9" stop-opacity="0" />
+                  </linearGradient>
+                  <radialGradient id="rtBrakeGroundGlow" cx="50%" cy="10%" r="85%">
+                    <stop offset="0%" stop-color="#ff1f3d" stop-opacity="0.65" />
+                    <stop offset="55%" stop-color="#dc2626" stop-opacity="0.22" />
+                    <stop offset="100%" stop-color="#7f1d1d" stop-opacity="0" />
+                  </radialGradient>
+                </defs>
+
+                <!-- 1. Forward Headlight Cones (Shining UPWARD y=82 -> y=0) -->
+                <g id="rtBeamLow" class="svg-beam">
+                  <polygon points="134,82 150,82 162,10 92,10" fill="url(#rtLowBeamCone)" />
+                  <polygon points="210,82 226,82 268,10 198,10" fill="url(#rtLowBeamCone)" />
+                </g>
+                <g id="rtBeamHigh" class="svg-beam">
+                  <polygon points="136,80 152,80 175,0 60,0" fill="url(#rtHighBeamCone)" />
+                  <polygon points="208,80 224,80 300,0 185,0" fill="url(#rtHighBeamCone)" />
+                </g>
+
+                <!-- 2. Rear Brake Ground Bloom -->
+                <ellipse id="rtBrakeGlow" cx="180" cy="272" rx="95" ry="26" fill="url(#rtBrakeGroundGlow)" class="svg-brake-glow" />
+
+                <!-- 3. Wheels / Tyres -->
+                <rect x="115" y="102" width="14" height="32" rx="4" fill="#0f172a" stroke="#334155" stroke-width="1" />
+                <rect x="231" y="102" width="14" height="32" rx="4" fill="#0f172a" stroke="#334155" stroke-width="1" />
+                <rect x="115" y="210" width="14" height="32" rx="4" fill="#0f172a" stroke="#334155" stroke-width="1" />
+                <rect x="231" y="210" width="14" height="32" rx="4" fill="#0f172a" stroke="#334155" stroke-width="1" />
+
+                <!-- 4. Full SUV Chassis & Panels -->
+                <path d="M 145 78 Q 180 70 215 78 Q 236 84 238 110 L 240 242 Q 238 260 215 264 Q 180 268 145 264 Q 122 260 120 242 L 122 110 Q 124 84 145 78 Z"
+                      fill="url(#rtBodyMetal)" stroke="#475569" stroke-width="1.5" />
+                <!-- Hood Contour Lines -->
+                <path d="M 146 86 L 140 122 M 214 86 L 220 122" stroke="rgba(15,23,42,0.28)" stroke-width="1.2" fill="none" />
+                <!-- Windshield & Rear Glass & Panoramic Roof -->
+                <path d="M 134 126 Q 180 116 226 126 L 220 150 Q 180 144 140 150 Z" fill="#090d16" stroke="#334155" stroke-width="1" />
+                <rect x="140" y="154" width="80" height="68" rx="8" fill="#0f172a" stroke="#334155" stroke-width="1" />
+                <path d="M 140 226 Q 180 232 220 226 L 224 246 Q 180 253 136 246 Z" fill="#090d16" stroke="#334155" stroke-width="1" />
+                <!-- RHD Steering Wheel Marker -->
+                <circle cx="204" cy="144" r="6" fill="none" stroke="#38bdf8" stroke-width="1.3" opacity="0.65" />
+
+                <!-- 5. Side Mirrors & Embedded Mirror Turn Signal Strips -->
+                <path d="M 121 124 L 107 129 L 111 136 L 122 133 Z" fill="#64748b" stroke="#334155" stroke-width="1" />
+                <path d="M 239 124 L 253 129 L 249 136 L 238 133 Z" fill="#64748b" stroke="#334155" stroke-width="1" />
+                <rect id="rtMirrorTurnL" x="108" y="128" width="9" height="3" rx="1.5" class="svg-turn" transform="rotate(-14 112 130)" />
+                <rect id="rtMirrorTurnR" x="243" y="128" width="9" height="3" rx="1.5" class="svg-turn" transform="rotate(14 247 130)" />
+
+                <!-- 6. Front Headlights, DRL & Front Turn Signals -->
+                <path id="rtDrlL" d="M 129 85 Q 144 79 159 80" class="svg-drl" />
+                <path id="rtDrlR" d="M 231 85 Q 216 79 201 80" class="svg-drl" />
+                <rect id="rtHeadL" x="132" y="80" width="18" height="6" rx="2.5" class="svg-head-unit" transform="rotate(-10 141 83)" />
+                <rect id="rtHeadR" x="210" y="80" width="18" height="6" rx="2.5" class="svg-head-unit" transform="rotate(10 219 83)" />
+                <circle id="rtTurnFL" cx="127" cy="87" r="4.5" class="svg-turn" />
+                <circle id="rtTurnFR" cx="233" cy="87" r="4.5" class="svg-turn" />
+
+                <!-- 7. Rear Brake Light Bar, 3rd Spoiler Brake Light, Reverse & Rear Turn Signals -->
+                <rect id="rtBrakeHigh" x="163" y="247" width="34" height="3.5" rx="1.8" class="svg-brake" />
+                <path id="rtBrakeBar" d="M 142 258 Q 180 263 218 258 L 218 262 Q 180 267 142 262 Z" class="svg-brake" />
+                <rect id="rtBrakeL" x="128" y="253" width="16" height="6" rx="2.5" class="svg-brake" transform="rotate(12 136 256)" />
+                <rect id="rtBrakeR" x="216" y="253" width="16" height="6" rx="2.5" class="svg-brake" transform="rotate(-12 224 256)" />
+                <rect id="rtRevL" x="150" y="261" width="12" height="3.5" rx="1.5" class="svg-reverse" />
+                <rect id="rtRevR" x="198" y="261" width="12" height="3.5" rx="1.5" class="svg-reverse" />
+                <circle id="rtTurnRL" cx="125" cy="252" r="4.5" class="svg-turn" />
+                <circle id="rtTurnRR" cx="235" cy="252" r="4.5" class="svg-turn" />
+
+                <!-- 8. Doors & Boot Open Indicators -->
+                <line id="rtDoorFL" x1="122" y1="138" x2="122" y2="180" class="svg-door-wing" />
+                <line id="rtDoorFR" x1="238" y1="138" x2="238" y2="180" class="svg-door-wing" />
+                <line id="rtDoorRL" x1="122" y1="186" x2="122" y2="225" class="svg-door-wing" />
+                <line id="rtDoorRR" x1="238" y1="186" x2="238" y2="225" class="svg-door-wing" />
+                <path id="rtDoorBoot" d="M 152 266 Q 180 269 208 266" class="svg-door-wing" />
+              </svg>
+            </div>
+
+            <!-- Right Telemetry Pillar: Raw IBCM 720 Bit Inspector & Headlight Bit Learner -->
+            <div class="rt-pillars">
+              <div class="rt-stat-box">
+                <div class="rt-stat-top">
+                  <span>📡 ค่าดิบกล่องตัวถัง (IBCM 720)</span>
+                  <span id="rtDoorsQuickTag">ประตู: ปิด</span>
+                </div>
+                <div class="rt-bit-row">
+                  <span>2100:</span><code id="rtRaw2100">–</code>
+                  <span style="margin-left:4px;">2101:</span><code id="rtRaw2101">–</code>
+                  <span style="margin-left:4px;">2102:</span><code id="rtRaw2102">–</code>
+                </div>
+                <div class="rt-bit-row" style="margin-top:2px;">
+                  <span>Bits:</span><code id="rtRawBits2101">–––– –––– –––– ––––</code>
+                </div>
+                <div style="font-size:10px; color:var(--cockpit-muted); line-height:1.35;">
+                  ยืนยันแล้ว: เบรก <code>0800</code> · ถอย <code>0100</code> · เลี้ยว L/R <code>80/08</code> · บิตไฟหน้าตั้งค่าได้จากรถจริง
+                </div>
+              </div>
+
+              <div class="rt-learn-panel" id="rtLearnPanel">
+                <div><b>🔍 จับคู่บิตไฟหน้ารถจริง (720:2101)</b> · มาสก์: <code id="rtSavedMaskLabel">Demo Auto</code></div>
+                <div style="color:var(--cockpit-muted); font-size:10px; margin-top:2px;" id="rtLearnHint">
+                  ต่อรถจริง: 1) ปิดไฟหน้ากด "ฐาน" 2) เปิดไฟต่ำกด "จับไฟต่ำ" ระบบจะหักลบเฉพาะบิตที่เปลี่ยนให้เอง
+                </div>
+                <div class="rt-learn-actions">
+                  <button class="rt-btn-turbo" id="btnLearnBase" style="padding:3px 7px;">1. ฐาน (ปิดไฟ)</button>
+                  <button class="rt-btn-turbo" id="btnLearnLow" style="padding:3px 7px;">2. จับไฟต่ำ</button>
+                  <button class="rt-btn-turbo" id="btnLearnHigh" style="padding:3px 7px;">3. จับไฟสูง</button>
+                  <button class="rt-btn-turbo" id="btnLearnClear" style="padding:3px 7px;">ล้าง</button>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -464,15 +658,15 @@
           </div>
           <div class="tpms-content-grid">
             <div class="tpms-col left">
-              <div class="tpms-tire-cell"><span class="p-val" data-v="tpms_fl_p" data-d="1">2.3</span><span class="t-val"><span data-v="tpms_fl_t" data-d="0">32</span>°</span></div>
-              <div class="tpms-tire-cell"><span class="p-val" data-v="tpms_rl_p" data-d="1">2.3</span><span class="t-val"><span data-v="tpms_rl_t" data-d="0">31</span>°</span></div>
+              <div class="tpms-tire-cell"><span class="p-val" data-v="tpms_t1_bar" data-d="1">2.3</span><span class="t-val"><span data-v="tpms.tire_1_c" data-d="0">32</span>°</span></div>
+              <div class="tpms-tire-cell"><span class="p-val" data-v="tpms_t3_bar" data-d="1">2.3</span><span class="t-val"><span data-v="tpms.tire_3_c" data-d="0">31</span>°</span></div>
             </div>
             <div class="tpms-car-center">
               <img src="assets/aion_v_top.png" alt="Aion V Top TPMS" />
             </div>
             <div class="tpms-col right">
-              <div class="tpms-tire-cell"><span class="p-val" data-v="tpms_fr_p" data-d="1">2.3</span><span class="t-val"><span data-v="tpms_fr_t" data-d="0">32</span>°</span></div>
-              <div class="tpms-tire-cell"><span class="p-val" data-v="tpms_rr_p" data-d="1">2.3</span><span class="t-val"><span data-v="tpms_rr_t" data-d="0">32</span>°</span></div>
+              <div class="tpms-tire-cell"><span class="p-val" data-v="tpms_t2_bar" data-d="1">2.3</span><span class="t-val"><span data-v="tpms.tire_2_c" data-d="0">32</span>°</span></div>
+              <div class="tpms-tire-cell"><span class="p-val" data-v="tpms_t4_bar" data-d="1">2.3</span><span class="t-val"><span data-v="tpms.tire_4_c" data-d="0">32</span>°</span></div>
             </div>
           </div>
         </div>
@@ -655,6 +849,8 @@
             <path id="door_rr" class="door" d="M259 256 L259 322" />
             <path id="door_boot" class="door" d="M140 409 Q180 415 220 409" />
             <!-- lamps -->
+            <rect id="tabBodyHeadL" x="128" y="37" width="26" height="6" rx="3" class="lamp head" />
+            <rect id="tabBodyHeadR" x="206" y="37" width="26" height="6" rx="3" class="lamp head" />
             <circle id="turn_fl" cx="116" cy="50" r="7" class="lamp turn" />
             <circle id="turn_fr" cx="244" cy="50" r="7" class="lamp turn" />
             <circle id="turn_rl" cx="112" cy="398" r="7" class="lamp turn" />

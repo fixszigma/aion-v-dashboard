@@ -966,19 +966,329 @@
   100% { stroke-dasharray: 10 30; stroke-dashoffset: -40; }
 }
 
+/* =============================================================================
+   Full-Car Realtime Exterior & Lighting Visualizer (span 12)
+   Headlights (DRL/Low/High) · Turn Signals (L/R/Hazard) · Brake & Reverse Lamps
+   ============================================================================= */
+.span-12 {
+  grid-column: span 12;
+}
+
+.card-realtime-lights {
+  border-color: rgba(6, 182, 212, 0.25);
+  background: radial-gradient(900px 260px at 50% 50%, rgba(6, 182, 212, 0.08), rgba(14, 20, 34, 0.85));
+}
+
+.rt-header-tools {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.rt-rate-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 9px;
+  border-radius: 99px;
+  font-size: 11px;
+  background: rgba(15, 23, 42, 0.75);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: var(--cockpit-muted);
+}
+
+.rt-rate-pill b {
+  color: #38bdf8;
+}
+
+.rt-btn-turbo {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  border-radius: 8px;
+  font: inherit;
+  font-size: 11.5px;
+  font-weight: 600;
+  cursor: pointer;
+  color: var(--cockpit-text);
+  background: rgba(30, 41, 59, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  transition: all 0.2s;
+}
+
+.rt-btn-turbo:hover {
+  border-color: #06b6d4;
+}
+
+.rt-btn-turbo.active {
+  color: #04131a;
+  background: linear-gradient(135deg, #22d3ee, #10b981);
+  border-color: #22d3ee;
+  box-shadow: 0 0 14px rgba(34, 211, 238, 0.5);
+}
+
+.rt-lights-grid {
+  display: grid;
+  grid-template-columns: 1fr minmax(260px, 1.35fr) 1fr;
+  align-items: center;
+  gap: 16px;
+}
+
+.rt-pillars {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.rt-stat-box {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 12px;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  transition: border-color 0.15s, background 0.15s, box-shadow 0.15s;
+}
+
+.rt-stat-box.on-cyan {
+  border-color: rgba(56, 189, 248, 0.65);
+  background: rgba(56, 189, 248, 0.1);
+  box-shadow: 0 0 18px rgba(56, 189, 248, 0.16);
+}
+
+.rt-stat-box.on-amber {
+  border-color: rgba(245, 158, 11, 0.75);
+  background: rgba(245, 158, 11, 0.12);
+  box-shadow: 0 0 18px rgba(245, 158, 11, 0.2);
+}
+
+.rt-stat-box.on-red {
+  border-color: rgba(239, 68, 68, 0.8);
+  background: rgba(239, 68, 68, 0.14);
+  box-shadow: 0 0 20px rgba(239, 68, 68, 0.25);
+}
+
+.rt-stat-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 11px;
+  color: var(--cockpit-muted);
+}
+
+.rt-stat-main {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--cockpit-text);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.rt-turn-pills {
+  display: flex;
+  gap: 6px;
+}
+
+.rt-turn-pill {
+  flex: 1;
+  text-align: center;
+  padding: 4px 6px;
+  border-radius: 7px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--cockpit-muted);
+  background: rgba(15, 23, 42, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  transition: all 0.08s;
+}
+
+.rt-turn-pill.on {
+  color: #1c1002;
+  background: #fbbf24;
+  border-color: #fde68a;
+  box-shadow: 0 0 12px rgba(251, 191, 36, 0.85);
+}
+
+/* Center Full-Car SVG Optical Stage */
+.rt-car-stage {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 255px;
+  background: radial-gradient(circle at 50% 52%, rgba(15, 23, 42, 0.9), rgba(7, 11, 20, 0.95));
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  overflow: hidden;
+  padding: 6px;
+}
+
+.rt-car-svg {
+  width: 100%;
+  max-width: 390px;
+  height: auto;
+  max-height: 280px;
+  display: block;
+  overflow: visible;
+}
+
+.rt-dir-tag {
+  position: absolute;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: rgba(142, 159, 181, 0.55);
+  pointer-events: none;
+}
+
+.rt-dir-tag.front { top: 8px; left: 12px; }
+.rt-dir-tag.left  { top: 50%; left: 10px; transform: translateY(-50%); }
+.rt-dir-tag.right { top: 50%; right: 10px; transform: translateY(-50%); }
+.rt-dir-tag.rear  { bottom: 8px; right: 12px; }
+
+/* SVG Lighting Transitions */
+.svg-beam {
+  opacity: 0;
+  transition: opacity 0.14s ease-out;
+  pointer-events: none;
+}
+.svg-beam.on { opacity: 1; }
+
+.svg-drl {
+  stroke: #475569;
+  stroke-width: 3;
+  fill: none;
+  stroke-linecap: round;
+  transition: all 0.12s;
+}
+.svg-drl.on {
+  stroke: #e0f2fe;
+  filter: drop-shadow(0 0 6px #38bdf8);
+}
+
+.svg-head-unit {
+  fill: #1e293b;
+  stroke: #475569;
+  stroke-width: 1.2;
+  transition: all 0.12s;
+}
+.svg-head-unit.low {
+  fill: #bae6fd;
+  stroke: #ffffff;
+  filter: drop-shadow(0 0 10px #38bdf8);
+}
+.svg-head-unit.high {
+  fill: #ffffff;
+  stroke: #ffffff;
+  filter: drop-shadow(0 0 16px #7dd3fc);
+}
+
+.svg-turn {
+  fill: #451a03;
+  stroke: rgba(245, 158, 11, 0.35);
+  stroke-width: 1;
+  transition: fill 0.05s, filter 0.05s;
+}
+.svg-turn.on {
+  fill: #fbbf24;
+  stroke: #fef3c7;
+  filter: drop-shadow(0 0 10px #f59e0b);
+}
+
+.svg-brake {
+  fill: #450a0a;
+  stroke: rgba(239, 68, 68, 0.35);
+  stroke-width: 1;
+  transition: fill 0.06s, filter 0.06s;
+}
+.svg-brake.on {
+  fill: #ff1f3d;
+  stroke: #fecaca;
+  filter: drop-shadow(0 0 12px #ef4444);
+}
+
+.svg-brake-glow {
+  opacity: 0;
+  transition: opacity 0.08s;
+  pointer-events: none;
+}
+.svg-brake-glow.on { opacity: 1; }
+
+.svg-reverse {
+  fill: #1e293b;
+  transition: fill 0.08s, filter 0.08s;
+}
+.svg-reverse.on {
+  fill: #f8fafc;
+  filter: drop-shadow(0 0 10px #ffffff);
+}
+
+.svg-door-wing {
+  stroke: #64748b;
+  stroke-width: 3;
+  stroke-linecap: round;
+  fill: none;
+  transition: transform 0.25s ease-out, stroke 0.2s;
+}
+.svg-door-wing.open {
+  stroke: #f87171;
+  filter: drop-shadow(0 0 6px rgba(248, 113, 113, 0.7));
+}
+#rtDoorFL.open { transform-origin: 122px 136px; transform: rotate(-38deg); }
+#rtDoorFR.open { transform-origin: 238px 136px; transform: rotate(38deg); }
+#rtDoorRL.open { transform-origin: 122px 186px; transform: rotate(-38deg); }
+#rtDoorRR.open { transform-origin: 238px 186px; transform: rotate(38deg); }
+#rtDoorBoot.open { stroke-width: 4.5; transform: translateY(7px); }
+
+/* Raw Bit Probe Box */
+.rt-bit-row {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  flex-wrap: wrap;
+  font-size: 11px;
+}
+.rt-bit-row code {
+  font-family: ui-monospace, monospace;
+  font-size: 11px;
+  color: #67e8f9;
+}
+.rt-learn-panel {
+  margin-top: 6px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: rgba(6, 182, 212, 0.08);
+  border: 1px dashed rgba(6, 182, 212, 0.4);
+  font-size: 11px;
+  color: var(--cockpit-text);
+}
+.rt-learn-actions {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-top: 6px;
+}
+
 /* Responsive breakpoint for smaller tablet/phones */
 @media (max-width: 1024px) {
   .cockpit-container {
     grid-template-columns: repeat(6, 1fr);
   }
-  .card-my-car {
-    grid-column: span 6;
-  }
+  .span-12,
+  .card-my-car,
   .card-outside-temp {
     grid-column: span 6;
   }
   .span-4 {
     grid-column: span 3;
+  }
+  .rt-lights-grid {
+    grid-template-columns: 1fr;
   }
 }
 
@@ -986,6 +1296,7 @@
   .cockpit-container {
     grid-template-columns: 1fr;
   }
+  .span-12,
   .card-my-car,
   .card-outside-temp,
   .span-4 {

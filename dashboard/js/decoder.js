@@ -26,13 +26,23 @@ export const ECU_MODULES = Object.freeze({
   VCU: { key: 'VCU', name: 'Vehicle Control Unit', systemName: 'VCU-UAES', tx: '7E3', rx: '7EB', partNumber: '1110003CVN0211', multiDid: true },
   MCU: { key: 'MCU', name: 'Motor Controller', systemName: 'MCU', tx: '7E4', rx: '7EC', partNumber: '1510046CVN4200', multiDid: true },
   CCU: { key: 'CCU', name: 'Charger & DC-DC Converter', systemName: 'EVT_6D6_CCU_B', tx: '7E6', rx: '7EE', partNumber: '2730003CVN0601', multiDid: true },
-  IBCM: { key: 'IBCM', name: 'Body Control Module', systemName: 'Continental_IBCM', tx: '720', rx: '7A0', partNumber: '8045025CVN0501', multiDid: true },
+  EOP: { key: 'EOP', name: 'Auxiliary Oil/Pump Module', systemName: 'A29-EOP', tx: '760', rx: '768', partNumber: '1322005CVN0000', multiDid: true },
+  MFS: { key: 'MFS', name: 'Steering Wheel Switches', systemName: 'GAC-AY5-MFS', tx: '765', rx: '76D', partNumber: '8220005CVN0000', multiDid: true },
+  UNK_705: { key: 'UNK_705', name: 'Slow Module 705', systemName: '705', tx: '705', rx: '785', partNumber: '2610003ERD0100', multiDid: false },
   IPB: { key: 'IPB', name: 'Brakes & Stability System', systemName: 'Bosch_IPB', tx: '710', rx: '790', partNumber: '8085004ERD0002', multiDid: false },
   EPB: { key: 'EPB', name: 'Parking Brake', systemName: 'WBTLEPB-20', tx: '711', rx: '791', partNumber: '8080003CVN0100', multiDid: true },
   DOOR_R: { key: 'DOOR_R', name: 'Door Module Right (Driver RHD)', systemName: 'DOOR_R', tx: '719', rx: '799', partNumber: '8065004', multiDid: true },
   DOOR_L: { key: 'DOOR_L', name: 'Door Module Left', systemName: 'DOOR_L', tx: '718', rx: '798', partNumber: '8065005', multiDid: true },
+  IBCM: { key: 'IBCM', name: 'Body Control Module', systemName: 'Continental_IBCM', tx: '720', rx: '7A0', partNumber: '8045025CVN0501', multiDid: true },
+  LIFTGATE: { key: 'LIFTGATE', name: 'Power Liftgate', systemName: 'Power_Liftgate', tx: '724', rx: '7A4', partNumber: '8045014CVN0003', multiDid: true },
   IC: { key: 'IC', name: 'Instrument Cluster', systemName: 'AY5G_IC2254', tx: '72B', rx: '7AB', partNumber: '8545003CVN0403', multiDid: true },
   TBOX: { key: 'TBOX', name: 'Telematics Box', systemName: 'GAEI_TBOX', tx: '72D', rx: '7AD', partNumber: '8550003CVN1903', multiDid: true },
+  SRS: { key: 'SRS', name: 'Airbag / Seatbelt Module', systemName: 'SRS_734', tx: '734', rx: '7B4', partNumber: '8265010CVN0001', multiDid: true },
+  FR: { key: 'FR', name: 'Front Radar (Bosch)', systemName: 'GAC-AY2.5-Bosch-FR', tx: '73E', rx: '7BE', partNumber: '8087003CVN0700', multiDid: true },
+  BSD_L: { key: 'BSD_L', name: 'Blind-Spot Radar 1 (Bosch)', systemName: 'Bosch-BSD', tx: '73F', rx: '7BF', partNumber: '8535009CVN0500', multiDid: true },
+  IFC: { key: 'IFC', name: 'Front Camera (Bosch)', systemName: 'GAC-AY2.5-Bosch-IFC', tx: '740', rx: '7C0', partNumber: '8540009CVN0400', multiDid: true },
+  WPC: { key: 'WPC', name: 'Wireless Phone Charger', systemName: 'INVISPOWER', tx: '748', rx: '7C8', partNumber: '8245028ERD0002', multiDid: true },
+  BSD_R: { key: 'BSD_R', name: 'Blind-Spot Radar 2 (Bosch)', systemName: 'Bosch-BSD', tx: '74A', rx: '7CA', partNumber: '8535009CVN0500', multiDid: true },
   GWM: { key: 'GWM', name: 'Gateway Module', systemName: '+GWM30', tx: '74F', rx: '7CF', partNumber: '8045196ERD0303', multiDid: true },
 });
 
@@ -116,6 +126,22 @@ export const decodePowerLimit = (b) => {
   return v > 1000 ? round(v / 100.0, 2) : v;
 };
 
+export function decodeAscii(b) {
+  let out = '';
+  for (const x of b) if (x >= 0x20 && x <= 0x7e) out += String.fromCharCode(x);
+  return out.trim();
+}
+
+export function decodeBcdClock(b) {
+  const h = Array.from(b.subarray(0, 7), (x) => x.toString(16).toUpperCase().padStart(2, '0'));
+  return `${h[0]}${h[1]}-${h[2]}-${h[3]} ${h[4]}:${h[5]}:${h[6]}`;
+}
+
+export function decodeBinClockUtc8(b) {
+  const pad = (n) => String(n).padStart(2, '0');
+  return `${2000 + b[0]}-${pad(b[1])}-${pad(b[2])} ${pad(b[3])}:${pad(b[4])}:${pad(b[5])}`;
+}
+
 // ---------------------------------------------------------------------------
 // 3. DID registry
 // ---------------------------------------------------------------------------
@@ -130,11 +156,13 @@ function def(ecuKey, did, name, label, unit, byteLength, decode, minLength = byt
 }
 
 // BMS (7E2 -> 7EA)
+def('BMS', '0300', 'battery_pack_code', 'รหัสแพ็กแบตเตอรี่', '', 37, decodeAscii, 1);
 def('BMS', '111A', 'soc_display', 'SoC (หน้าจอ)', '%', 2, (b) => u16(b));
 def('BMS', '141E', 'soc_display_alt', 'SoC (หน้าจอ, สำรอง)', '%', 2, (b) => u16(b));
 def('BMS', '111B', 'soc_bms', 'SoC ภายใน BMS', '%', 2, (b) => u16(b));
 def('BMS', '1114', 'soc_cell_avg', 'SoC เฉลี่ยของเซลล์', '%', 1, (b) => u8(b));
 def('BMS', '1002', 'soh', 'SoH สุขภาพแบตเตอรี่', '%', 2, (b) => round(u16(b) / 100.0, 2));
+def('BMS', '1004', 'bms_counter', 'ตัวนับภายใน BMS (50 Hz)', 'ticks', 2, (b) => u16(b));
 def('BMS', '1401', 'pack_voltage', 'แรงดันแพ็ก', 'V', 2, (b) => round(u16(b) / 10.0, 1));
 def('BMS', '1105', 'pack_voltage_alt', 'แรงดันแพ็ก (สำรอง)', 'V', 2, (b) => round(u16(b) / 10.0, 1));
 def('BMS', '1106', 'cell_sum_voltage', 'ผลรวมแรงดันเซลล์', 'V', 2, (b) => round(u16(b) / 10.0, 1));
@@ -154,12 +182,16 @@ def('BMS', '1180', 'bmu_temps', 'อุณหภูมิแผงวงจร B
 def('BMS', '1181', 'bmu_temp_max', 'อุณหภูมิ BMU สูงสุด', '°C', 1, (b) => u8(b) - 40);
 def('BMS', '1182', 'bmu_temp_min', 'อุณหภูมิ BMU ต่ำสุด', '°C', 1, (b) => u8(b) - 40);
 def('BMS', '1183', 'bmu_temp_avg', 'อุณหภูมิ BMU เฉลี่ย', '°C', 1, (b) => u8(b) - 40);
+def('BMS', '1184', 'bmu_temp_max_index', 'แผงวงจร BMU ร้อนสุด #', '#', 1, (b) => u8(b));
 def('BMS', '114D', 'energy_charged_total', 'พลังงานชาร์จเข้าสะสม (CEC)', 'kWh', 3, (b) => round(u24(b) / 10.0, 1));
 def('BMS', '1189', 'energy_discharged_total', 'พลังงานจ่ายออกสะสม (CED)', 'kWh', 3, (b) => round(u24(b) / 10.0, 1));
 def('BMS', '1136', 'cc2_voltage', 'แรงดัน CC2 (สายชาร์จ)', 'V', 1, (b) => round(u8(b) / 10.0, 1));
 def('BMS', '1000', 'aux_12v_bms', 'ไฟ 12V ที่ BMS', 'V', 1, (b) => round(u8(b) / 10.0, 1));
 
 // VCU (7E3 -> 7EB)
+def('VCU', '0511', 'vcu_clock', 'นาฬิการถ VCU (UTC+8)', '', 6, decodeBinClockUtc8);
+def('VCU', '1000', 'aux_12v_vcu', 'ไฟ 12V ที่ VCU', 'V', 1, (b) => round(u8(b) / 10.0, 1));
+def('VCU', '1442', 'pack_voltage_vcu', 'แรงดันแพ็ก (VCU)', 'V', 2, (b) => round(u16(b) / 10.0, 1));
 def('VCU', '1477', 'wheel_speed_fl', 'ความเร็วล้อหน้าซ้าย', 'km/h', 2, (b) => round(u16(b) / 200.0, 2));
 def('VCU', '1478', 'wheel_speed_fr', 'ความเร็วล้อหน้าขวา', 'km/h', 2, (b) => round(u16(b) / 200.0, 2));
 def('VCU', '1479', 'wheel_speed_rl', 'ความเร็วล้อหลังซ้าย', 'km/h', 2, (b) => round(u16(b) / 200.0, 2));
@@ -173,6 +205,9 @@ def('VCU', '2313', 'discharge_power_limit', 'ลิมิตกำลังจ�
 def('VCU', '2314', 'charge_power_limit', 'ลิมิตกำลังชาร์จ/Regen', 'kW', 2, decodePowerLimit);
 
 // MCU (7E4 -> 7EC)
+def('MCU', '0511', 'mcu_clock', 'นาฬิการถ MCU (UTC+8)', '', 6, decodeBinClockUtc8);
+def('MCU', '1000', 'aux_12v_mcu', 'ไฟ 12V ที่ MCU', 'V', 1, (b) => round(u8(b) / 10.0, 1));
+def('MCU', '1104', 'motor_temp_mcu', 'อุณหภูมิมอเตอร์/อินเวอร์เตอร์ (MCU)', '°C', 1, (b) => u8(b) - 40);
 def('MCU', '1110', 'motor_rpm', 'รอบมอเตอร์', 'rpm', 2, (b) => u16(b) - 32767);
 def('MCU', '1408', 'motor_torque', 'แรงบิดมอเตอร์ (ประมาณ)', 'raw', 2, (b) => u16(b) - 1100);
 def('MCU', '1100', 'inverter_dc_bus_v', 'แรงดัน DC-Bus อินเวอร์เตอร์', 'V', 2, (b) => u16(b));
@@ -183,17 +218,41 @@ def('CCU', '1402', 'dcdc_target_v', 'แรงดันเป้าหมาย 
 def('CCU', '110C', 'charger_temp', 'อุณหภูมิชุดชาร์จ/DC-DC', '°C', 1, (b) => u8(b) - 40);
 
 // IBCM (720 -> 7A0)
+def('IBCM', '1000', 'aux_12v_ibcm', 'ไฟ 12V ที่ IBCM', 'V', 1, (b) => round(u8(b) / 10.0, 1));
+def('IBCM', '1001', 'aux_12v_ibcm_alt', 'ไฟ 12V ที่ IBCM (สำรอง)', 'V', 1, (b) => round(u8(b) / 10.0, 1));
 def('IBCM', '11FF', 'tpms', 'ลมยาง TPMS', 'psi/°C', 8, decodeTpms);
 def('IBCM', '1201', 'doors', 'สถานะประตู/ฝาท้าย', 'flags', 1, decodeDoors);
 def('IBCM', '1200', 'pedal_park', 'แป้นเบรก / เกียร์ P', 'flags', 2, (b) => ({ park: !!(u16(b) & 0x0010), brake_pedal: !!(u16(b) & 0x0020) }));
-def('IBCM', '2100', 'turn_signals', 'ไฟเลี้ยว', 'flags', 1, (b) => ({ left: !!(b[0] & 0x80), right: !!(b[0] & 0x08) }));
-def('IBCM', '2101', 'lights', 'ไฟเบรก / ไฟถอย', 'flags', 2, (b) => ({ brake_light: !!(u16(b) & 0x0800), reverse_light: !!(u16(b) & 0x0100) }));
+def('IBCM', '1207', 'brake_pedal_switch', 'สวิตช์แป้นเบรก (1207)', 'bool', 2, (b) => !!(u16(b) & 0x8000));
+def('IBCM', '2100', 'turn_signals', 'ไฟเลี้ยว', 'flags', 1, (b) => ({ left: !!(b[0] & 0x80), right: !!(b[0] & 0x08), raw: b[0] }));
+def('IBCM', '2101', 'lights', 'ไฟเบรก / ไฟถอย / เอาต์พุตไฟ', 'flags', 2, (b) => {
+  const raw = u16(b);
+  return {
+    brake_light: !!(raw & 0x0800),
+    reverse_light: !!(raw & 0x0100),
+    raw,
+    raw_hex: raw.toString(16).toUpperCase().padStart(4, '0'),
+  };
+});
+def('IBCM', '2102', 'body_status_2102', 'สถานะตัวถัง/ไฟห้องโดยสาร (2102)', 'flags', 1, (b) => ({ interior_light_cand: !!(b[0] & 0x02), raw: b[0] }));
 
-// Door modules
+// Door modules & Support ECUs
+def('DOOR_R', '1000', 'aux_12v_door_r', 'ไฟ 12V ประตูขวา', 'V', 1, (b) => round(u8(b) / 10.0, 1));
 def('DOOR_R', '1203', 'lock_state', 'สถานะล็อกรถ', '', 2, decodeLockState);
 def('DOOR_R', '1208', 'windows_right', 'กระจกฝั่งขวา (คนขับ)', '%', 8, decodeWindows);
+def('DOOR_L', '1000', 'aux_12v_door_l', 'ไฟ 12V ประตูซ้าย', 'V', 1, (b) => round(u8(b) / 10.0, 1));
 def('DOOR_L', '1203', 'lock_state_l', 'สถานะล็อกรถ (ซ้าย)', '', 2, decodeLockState);
 def('DOOR_L', '1208', 'windows_left', 'กระจกฝั่งซ้าย', '%', 8, decodeWindows);
+def('LIFTGATE', '1000', 'aux_12v_liftgate', 'ไฟ 12V ฝาท้าย', 'V', 1, (b) => round(u8(b) / 10.0, 1));
+def('IC', '1000', 'aux_12v_ic', 'ไฟ 12V เรือนไมล์', 'V', 1, (b) => round(u8(b) / 10.0, 1));
+def('IC', '1052', 'pki_server_url', 'เซิร์ฟเวอร์ PKI', '', 50, decodeAscii, 4);
+def('IC', '1202', 'cluster_clock', 'นาฬิกาหน้าปัดรถ', '', 7, decodeBcdClock);
+def('IC', '2104', 'cluster_clock_copy', 'นาฬิกาหน้าปัดรถ (สำรอง)', '', 7, decodeBcdClock);
+def('TBOX', '1000', 'aux_12v_tbox', 'ไฟ 12V T-Box', 'V', 1, (b) => round(u8(b) / 10.0, 1));
+def('TBOX', '1014', 'telematics_server_url', 'เซิร์ฟเวอร์ Telematics', '', 50, decodeAscii, 4);
+def('SRS', '1000', 'aux_12v_srs', 'ไฟ 12V SRS/ถุงลม', 'V', 1, (b) => round(u8(b) / 10.0, 1));
+def('GWM', '1000', 'aux_12v_gwm', 'ไฟ 12V Gateway', 'V', 1, (b) => round(u8(b) / 10.0, 1));
+def('MFS', '1000', 'aux_12v_mfs', 'ไฟ 12V สวิตช์พวงมาลัย', 'V', 1, (b) => round(u8(b) / 10.0, 1));
 
 // IPB (710 -> 790) — single DID per request only
 def('IPB', '1101', 'dynamics', 'เซนเซอร์ทรงตัว (พวงมาลัย/G/Yaw/เบรก)', 'mixed', 10, decodeIpbDynamics);
@@ -202,17 +261,21 @@ export const getDid = (tx, did) => DID_REGISTRY.get(`${String(tx).toUpperCase()}
 export const DID_BY_NAME = new Map([...DID_REGISTRY.values()].map((d) => [d.name, d]));
 
 // ---------------------------------------------------------------------------
-// 4. Polling plan (AGENTS.md §5.3)
+// 4. Polling plan & Ultra-Fast Lighting Batch
 // ---------------------------------------------------------------------------
+/** Atomic 2-frame UDS request capturing Turn Signals + Brake/Reverse/Lamp Outputs + Body 2102 in ~20ms. */
+export const EXPRESS_LIGHTS_TARGET = Object.freeze({ tier: 'fast', category: 'body', tx: '720', dids: ['2100', '2101', '2102'] });
+
 /** category is used to let the user disable whole sections to speed up polling. */
 export const POLL_GROUPS = Object.freeze([
-  // Fast tier (~0.5–0.6 s)
+  // Ultra-fast lighting batch (2 frames on IBCM 720)
+  { tier: 'fast', category: 'body', priority: 'lights', tx: '720', dids: ['2100', '2101', '2102'] },
+  // Fast tier (~0.4–0.6 s)
   { tier: 'fast', category: 'drive', tx: '7E3', dids: ['1477', '1478', '1479'] },
   { tier: 'fast', category: 'drive', tx: '7E3', dids: ['147A', '2103', '146B'] },
   { tier: 'fast', category: 'drive', tx: '7E4', dids: ['1110', '1408', '1100'] },
   { tier: 'fast', category: 'battery', tx: '7E2', dids: ['1401', '1404'] },
-  { tier: 'fast', category: 'body', tx: '720', dids: ['1200', '1201', '2101'] },
-  { tier: 'fast', category: 'body', tx: '720', dids: ['2100'] },
+  { tier: 'fast', category: 'body', tx: '720', dids: ['1200', '1201', '1207'] },
   { tier: 'fast', category: 'dynamics', tx: '710', dids: ['1101'] },
   // Slow tier (~15–30 s)
   { tier: 'slow', category: 'battery', tx: '7E2', dids: ['111A', '1002', '111B'] },
@@ -226,11 +289,13 @@ export const POLL_GROUPS = Object.freeze([
   { tier: 'slow', category: 'cells', tx: '7E2', dids: ['1150'] },
   { tier: 'slow', category: 'cells', tx: '7E2', dids: ['1180'] },
   { tier: 'slow', category: 'drive', tx: '7E3', dids: ['2104', '144D', '144E'] },
-  { tier: 'slow', category: 'drive', tx: '7E3', dids: ['2313', '2314'] },
+  { tier: 'slow', category: 'drive', tx: '7E3', dids: ['2313', '2314', '1000'] },
   { tier: 'slow', category: 'drive', tx: '7E6', dids: ['1000', '1402', '110C'] },
-  { tier: 'slow', category: 'body', tx: '720', dids: ['11FF'] },
-  { tier: 'slow', category: 'body', tx: '719', dids: ['1203', '1208'] },
-  { tier: 'slow', category: 'body', tx: '718', dids: ['1208'] },
+  { tier: 'slow', category: 'body', tx: '720', dids: ['11FF', '1000'] },
+  { tier: 'slow', category: 'body', tx: '719', dids: ['1203', '1208', '1000'] },
+  { tier: 'slow', category: 'body', tx: '718', dids: ['1208', '1000'] },
+  { tier: 'slow', category: 'body', tx: '72B', dids: ['1202', '1000'] },
+  { tier: 'slow', category: 'body', tx: '74F', dids: ['1000'] },
 ]);
 
 export const POLL_CATEGORIES = Object.freeze({

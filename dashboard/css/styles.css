@@ -189,6 +189,8 @@ main { padding: 14px 18px 30px; }
 #door_fr.open, #door_rr.open { transform-origin: top; transform: rotate(-35deg); }
 #door_boot.open { transform: translateY(16px); }
 .lamp { fill: #273341; transition: fill .1s; }
+.lamp.head.on { fill: #bae6fd; filter: drop-shadow(0 0 7px #38bdf8); }
+.lamp.head.high { fill: #ffffff; filter: drop-shadow(0 0 11px #7dd3fc); }
 .lamp.turn.on { fill: var(--amber); filter: drop-shadow(0 0 6px var(--amber)); }
 .lamp.brake.on { fill: var(--red); filter: drop-shadow(0 0 6px var(--red)); }
 .lamp.reverse.on { fill: #f8fafc; filter: drop-shadow(0 0 6px #fff); }
@@ -321,6 +323,8 @@ fieldset label { display: flex !important; align-items: center; gap: 8px; color:
 }
 .btn-sm:hover { background: #1a2736; border-color: #3b5066; }
 .demo-turn-row { display: grid; grid-template-columns: 1fr 1fr 1fr 1.2fr; gap: 4px; margin-top: 4px; }
+.demo-head-row { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; margin-top: 4px; }
+.btn-turn.head.active { background: #0c2633; border-color: var(--accent); color: #7dd3fc; box-shadow: 0 0 10px rgba(34, 211, 238, .35); }
 .btn-turn {
   background: #0d151e; border: 1px solid var(--line); color: var(--muted); padding: 8px 4px;
   border-radius: 6px; font: inherit; font-size: 11px; font-weight: 600; cursor: pointer; text-align: center;

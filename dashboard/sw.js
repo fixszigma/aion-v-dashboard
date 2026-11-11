@@ -1,10 +1,16 @@
-const CACHE = 'aionv-obd-v1';
+const CACHE = 'aionv-obd-v1-cockpit-2';
 const ASSETS = [
   './',
   './index.html',
   './manifest.webmanifest',
   './icons/icon.svg',
   './css/styles.css',
+  './css/cockpit.css',
+  './assets/aion_v_front.png',
+  './assets/aion_v_rear.png',
+  './assets/aion_v_rear_straight.png',
+  './assets/aion_v_side.png',
+  './assets/aion_v_top.png',
   './js/app.js',
   './js/ble.js',
   './js/charts.js',
